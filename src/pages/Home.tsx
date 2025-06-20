@@ -5,6 +5,7 @@ import TimeLineTime from "../components/UI/TimeLineTime";
 import SupplementCard from "../components/SupplementCard/SupplementCard";
 import type { SupplementItem } from "../types/Supplement";
 import supplementsData from "../Data/Supplement";
+import AddButton from "../components/NewSupp";
 
 const getTimeSlot = (hour: number): "morning" | "afternoon" | "evening" => {
   if (hour < 12) return "morning";
@@ -13,7 +14,7 @@ const getTimeSlot = (hour: number): "morning" | "afternoon" | "evening" => {
 };
 
 const Home: React.FC = () => {
-  const today = new Date("2025-06-20T16:05:00+01:00"); // 4:05 PM WAT, June 20, 2025
+  const today = new Date();
   const formattedDate = today.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -62,9 +63,9 @@ const Home: React.FC = () => {
 
   return (
     <div className="bg-[var(--border-dark)]">
-      {/* <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
+      <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
         SafeDoser
-      </h1> */}
+      </h1>
 
       <div className="min-h-[calc(100vh-60px)] p-4">
         <GreetingCard />
@@ -118,6 +119,8 @@ const Home: React.FC = () => {
             </div>
           )}
       </div>
+
+      <AddButton></AddButton>
     </div>
   );
 };

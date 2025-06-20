@@ -11,7 +11,7 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
   onToggleMute,
   onToggleCompleted,
 }) => {
-  const currentTime = new Date("2025-06-20T16:05:00+01:00"); // 4:05 PM WAT, June 20, 2025
+  const currentTime = new Date();
 
   const getDisplayStatus = (time: string, completed: boolean): "completed" | "missed" | "current" | "default" => {
     if (completed) return "completed";
