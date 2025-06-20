@@ -66,7 +66,7 @@ const Home: React.FC = () => {
         SafeDoser
       </h1> */}
 
-      <div className="min-h-screen p-4">
+      <div className="min-h-[calc(100vh-60px)] p-4">
         <GreetingCard />
         <NoticeCard />
 
