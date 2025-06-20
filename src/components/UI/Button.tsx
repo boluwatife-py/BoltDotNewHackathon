@@ -1,17 +1,23 @@
 export default function Button({
   text,
   className,
+  handleClick
 }: {
   text: string;
   className?: string;
+  handleClick: ()=> void
 }) {
   return (
-    <button
-      className={`w-full flex px-[1.25rem] max-w-[30rem] min-5-[5.25rem] h-[3rem] justify-center items-center rounded-[1.5rem] bg-[var(--primary-color)] ${className}`}
+    <div
+      className={`flex items-center justify-center px-[1rem] pt-[0.75rem] pb-[1rem] ${className}`}
     >
-      <span className="text-white overflow-ellipsis font-bold text-[1.0625rem] text-center">
-        {text}
-      </span>
-    </button>
+      <button
+        className={`w-full flex px-[1.25rem] h-[3rem] justify-center items-center rounded-[1.5rem] bg-[var(--primary-color)] cursor-pointer`} onClick={handleClick}
+      >
+        <span className="text-white overflow-ellipsis font-bold text-[1.0625rem] text-center">
+          {text}
+        </span>
+      </button>
+    </div>
   );
 }

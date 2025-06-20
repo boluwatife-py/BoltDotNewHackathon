@@ -62,12 +62,12 @@ const Home: React.FC = () => {
   const eveningSupplements = getSupplementsBySlot("evening");
 
   return (
-    <div className="bg-[var(--border-dark)]">
+    <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">
       <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
         SafeDoser
       </h1>
 
-      <div className="min-h-[calc(100vh-60px)] p-4">
+      <div className="p-4">
         <GreetingCard />
         <NoticeCard />
 

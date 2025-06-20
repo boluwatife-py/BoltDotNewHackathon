@@ -2,9 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { TabProvider } from "./context/TabContext";
 import Home from "./pages/Home";
 import Scan from "./pages/Scan";
-// import Scheduler from "./pages/Scheduler";
-// import Chatbot from "./pages/Chatbot";
-// import Settings from "./pages/Settings";
+import AddManually from "./pages/Scan/Manually";
 import BottomNavBar from "./components/BottomNav/BottomNav";
 import Layout from "./components/Layout";
 
@@ -17,9 +15,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/scan" element={<Scan />} />
-              {/* <Route path="/scheduler" element={<Scheduler />} />
-              <Route path="/chatbot" element={<Chatbot />} />
-              <Route path="/settings" element={<Settings />} /> */}
+              <Route path="/scan/manual" element={<AddManually />} />
             </Routes>
           </Layout>
           <BottomNavBar />

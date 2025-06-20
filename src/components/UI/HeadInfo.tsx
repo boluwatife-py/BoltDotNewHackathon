@@ -22,7 +22,7 @@ export default function HeadInfo({ text, prevType, onPrevClick }: PageProps) {
       {prevType && (
         <button
           onClick={handlePrevClick}
-          className="absolute ml-[.5rem] text-[var(--text-cancel)] left-0 text-[0.75rem]"
+          className="absolute ml-[.5rem] text-[var(--text-cancel)] left-0 text-[0.75rem] cursor-pointer"
         >
           <span>{prevType}</span>
         </button>
