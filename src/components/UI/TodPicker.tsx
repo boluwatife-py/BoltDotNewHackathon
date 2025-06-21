@@ -8,6 +8,7 @@ const TOD = ["Morning", "Afternoon", "Evening"] as const;
 type CustomTimeInputProps = {
   value?: string;
   onClick?: () => void;
+  errors?: string;
 };
 
 const CustomTimeInput = forwardRef<HTMLButtonElement, CustomTimeInputProps>(
@@ -16,32 +17,44 @@ const CustomTimeInput = forwardRef<HTMLButtonElement, CustomTimeInputProps>(
       type="button"
       onClick={onClick}
       ref={ref}
-      className="w-full self-stretch flex justify-between items-center px-4 py-3 border border-[#CCC] rounded-lg bg-white focus:border-[var(--primary-color)] focus:outline-none"
+      className="w-full self-stretch flex justify-between items-center px-4 py-3 border border-[#CCC] rounded-lg bg-[#] focus:border-[var(--primary-color)] focus:outline-none"
     >
-      <span className={value ? "text-base" : "text-[#6B7280]"}>{value || "00:00 AM"}</span>
+      <span className={value ? "text-base" : "text-[#6B7280]"}>
+        {value || "00:00 AM"}
+      </span>
       <Clock className="text-[#6B7280]" />
     </button>
   )
 );
 
-export default function TimeOfDayPicker() {
-  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<(typeof TOD)[number]>("Morning");
-  const [timesByTimeOfDay, setTimesByTimeOfDay] = useState<Record<(typeof TOD)[number], Date[]>>(
-    {
-      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
-      Afternoon: [new Date(new Date().setHours(13, 0, 0, 0))],
-      Evening: [new Date(new Date().setHours(18, 0, 0, 0))],
-    }
-  );
+export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
+  const [selectedTimeOfDay, setSelectedTimeOfDay] =
+    useState<(typeof TOD)[number]>("Morning");
+  const [timesByTimeOfDay, setTimesByTimeOfDay] = useState<
+    Record<(typeof TOD)[number], Date[]>
+  >({
+    Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+    Afternoon: [new Date(new Date().setHours(13, 0, 0, 0))],
+    Evening: [new Date(new Date().setHours(18, 0, 0, 0))],
+  });
 
   const getTimeBounds = () => {
     switch (selectedTimeOfDay) {
       case "Morning":
-        return { minTime: new Date().setHours(5, 0, 0, 0), maxTime: new Date().setHours(11, 59, 0, 0) };
+        return {
+          minTime: new Date().setHours(5, 0, 0, 0),
+          maxTime: new Date().setHours(11, 59, 0, 0),
+        };
       case "Afternoon":
-        return { minTime: new Date().setHours(12, 0, 0, 0), maxTime: new Date().setHours(16, 59, 0, 0) };
+        return {
+          minTime: new Date().setHours(12, 0, 0, 0),
+          maxTime: new Date().setHours(16, 59, 0, 0),
+        };
       case "Evening":
-        return { minTime: new Date().setHours(17, 0, 0, 0), maxTime: new Date().setHours(21, 59, 0, 0) };
+        return {
+          minTime: new Date().setHours(17, 0, 0, 0),
+          maxTime: new Date().setHours(21, 59, 0, 0),
+        };
       default:
         return { minTime: undefined, maxTime: undefined };
     }
@@ -98,6 +111,11 @@ export default function TimeOfDayPicker() {
   return (
     <div className="px-4 py-3">
       <label className="block text-xl font-medium mb-2">Time of Day</label>
+      {errors && (
+        <p className="text-[var(--alarm-danger)] text-sm">
+          {errors}
+        </p>
+      )}
 
       <div className="flex gap-2 mb-4">
         {TOD.map((time) => (
@@ -106,7 +124,9 @@ export default function TimeOfDayPicker() {
             type="button"
             onClick={() => setSelectedTimeOfDay(time)}
             className={`flex-1 border p-3 rounded-[0.75rem] font-medium cursor-pointer ${
-              selectedTimeOfDay === time ? "bg-[var(--primary-color)] text-white" : "border-[#CCC]"
+              selectedTimeOfDay === time
+                ? "bg-[var(--primary-color)] text-white"
+                : "border-[#CCC]"
             }`}
           >
             {time}
@@ -145,8 +165,15 @@ export default function TimeOfDayPicker() {
       {selectedTimeOfDay && minTime && maxTime && (
         <p className="text-xs text-[#6B7280] mt-1">
           {selectedTimeOfDay} range:{" "}
-          {new Date(minTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
-          {new Date(maxTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {new Date(minTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}{" "}
+          –{" "}
+          {new Date(maxTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </p>
       )}
 
@@ -155,7 +182,9 @@ export default function TimeOfDayPicker() {
         type="button"
         onClick={addTimePicker}
       >
-        <span className="text-[1.0625rem] text-[#08B5A6]">+Add another time</span>
+        <span className="text-[1.0625rem] text-[#08B5A6]">
+          +Add another time
+        </span>
       </button>
     </div>
   );

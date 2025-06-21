@@ -1,28 +1,30 @@
-import { useState } from "react";
 import Check from "../../assets/icons/Check/check.svg";
 
-export default function Checkbox({checked}: {checked?: boolean}) {
-  const [isChecked, setIsChecked] = useState(checked);
+interface CheckboxProps {
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
+}
 
-  const handleToggle = () => setIsChecked((prev) => !prev);
+export default function Checkbox({ checked = false, onChange }: CheckboxProps) {
+  const handleToggle = () => {
+    onChange?.(!checked); // notify parent with the new state
+  };
 
   return (
     <label className="flex items-center cursor-pointer py-[.62rem] pr-[.62rem]">
       <input
         type="checkbox"
         className="hidden"
-        checked={isChecked}
+        checked={checked}
         onChange={handleToggle}
       />
 
       <span
         className={`w-[1.5rem] h-[1.5rem] rounded-[.3rem] flex items-center justify-center hover:border-gray-400 ${
-          isChecked
-            ? "bg-[var(--primary-color)]"
-            : "bg-white border border-[#CCCCCC]"
+          checked ? "bg-[var(--primary-color)]" : "bg-white border border-[#CCCCCC]"
         }`}
       >
-        {isChecked && <img src={Check} alt="Checkmark" />}
+        {checked && <img src={Check} alt="Checkmark" />}
       </span>
     </label>
   );

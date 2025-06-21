@@ -1,4 +1,4 @@
-import Alert from "../../assets/icons/alert.svg";
+import Down from "../../assets/icons/down.svg";
 
 interface FrequencyProps {
   value?: string;
@@ -6,33 +6,26 @@ interface FrequencyProps {
   state?: "default" | "error";
 }
 
-export default function Frequency({
-  value,
-  onClick,
-  state = "default",
-}: FrequencyProps) {
-  const errorIcon =
-    state === "error" ? (
-      <img src={Alert} className="w-6 h-6" alt="Error" />
-    ) : null;
-
+export default function Frequency({ value, onClick, state = "default" }: FrequencyProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       name="frequency"
-      className={`relative flex items-center w-full border px-4 py-3 rounded-xl bg-[var(--border-dark)] gap-2 text-left ${
+      className={`relative flex items-center justify-between w-full border px-4 py-3 rounded-xl bg-[var(--border-dark)] gap-2 text-left ${
         state === "error"
           ? "border-[var(--alarm-danger)]"
           : "border-[#CCC] focus-within:border-[var(--primary-color)]"
       }`}
     >
-      {errorIcon}
       <span
-        className={`flex-1 ${value ? "text-base" : "text-[#6B7280] text-base"}`}
+        className={`flex-1 ${
+          value ? "text-base text-black" : "text-[#6B7280] text-base"
+        }`}
       >
-        How Often?
+        {value || "How Often?"}
       </span>
+      <img src={Down} alt="" />
     </button>
   );
 }

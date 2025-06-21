@@ -5,7 +5,7 @@ interface ToggleProps {
   onChange?: (checked: boolean) => void;
 }
 
-export default function Toggle({ checked = false, onChange }: ToggleProps) {
+export default function Toggle({ checked = true, onChange }: ToggleProps) {
   const [isChecked, setIsChecked] = useState(checked);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
