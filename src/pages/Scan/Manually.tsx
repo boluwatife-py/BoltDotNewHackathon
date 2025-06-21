@@ -7,6 +7,9 @@ import Dose from "../../components/UI/Dose";
 import Overlay from "../../components/UI/Overlay";
 import Frequency from "../../components/UI/FrequencySelect";
 import TimeOfDayPicker from "../../components/UI/TodPicker";
+import InteractionsList from "../../components/IteractionList";
+import Toggle from "../../components/UI/Toggle";
+import Button from "../../components/UI/Button";
 
 function AddManually() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -24,6 +27,7 @@ function AddManually() {
     { label: "mg" },
     { label: "g" },
   ];
+
   const frequencies = [
     "Once daily",
     "Twice daily",
@@ -193,10 +197,22 @@ function AddManually() {
             </div>
 
             {/* Time of Day */}
-
             <TimeOfDayPicker />
+
+            {/* Iteractions */}
+            <InteractionsList></InteractionsList>
+
+            {/* Notification */}
+            <div className="p-[1rem] flex items-center justify-between">
+              <div className="py-[0.62rem] text-[1.0625rem] text-[var(--text-primary)]">
+                <span>Remind me to take this medication</span>
+              </div>
+              <Toggle></Toggle>
+            </div>
           </form>
         </div>
+
+        <Button text="Save" handleClick={()=>{}}></Button>
       </div>
     </div>
   );
