@@ -16,7 +16,6 @@ export const TabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const location = useLocation();
 
   useEffect(() => {
-    // Auto-update tab from route
     if (location.pathname.startsWith("/scan")) setActiveTab("Scan");
     else if (location.pathname.startsWith("/scheduler")) setActiveTab("Scheduler");
     else if (location.pathname.startsWith("/chatbot")) setActiveTab("Chatbot");
