@@ -34,7 +34,11 @@ function AddManually() {
     brandName: "",
     dose: { quantity: "", unit: null },
     frequency: null,
-    timesOfDay: { Morning: [], Afternoon: [], Evening: [] },
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: [],
+    },
     interactions: { fixedInteractions: [], customInteractions: [] },
     remindMe: false,
   });
@@ -74,25 +78,21 @@ function AddManually() {
 
   const handleTypeSelect = (type: string) => {
     setFormData((prev) => ({ ...prev, dosageForm: type }));
-    setErrors((prev) => ({ ...prev, dosageForm: "" }));
-  };
-
-  const handleBrandNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, brandName: e.target.value }));
-    setErrors((prev) => ({ ...prev, brandName: "" }));
   };
 
   const handleFrequencySelect = (frequency: string) => {
     setFormData((prev) => ({ ...prev, frequency }));
-    setErrors((prev) => ({ ...prev, frequency: "" }));
   };
 
-  const handleInteractionsChange = (data: InteractionsData) => {
-    setFormData((prev) => ({ ...prev, interactions: data }));
+  const handleQuantityChange = (quantity: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      dose: { ...prev.dose, quantity },
+    }));
   };
 
-  const handleToggleChange = (remindMe: boolean) => {
-    setFormData((prev) => ({ ...prev, remindMe }));
+  const handleDoseClick = () => {
+    setIsDoseOverlayVisible(true); // Show overlay for unit selection
   };
 
   const validateForm = () => {
@@ -147,7 +147,6 @@ function AddManually() {
       dose: formData.dose,
       frequency: formData.frequency,
       timesOfDay: formData.timesOfDay,
-
       interactions: [
         ...formData.interactions.fixedInteractions
           .filter((i) => i.checked)
@@ -156,11 +155,14 @@ function AddManually() {
           .filter((i) => i.checked)
           .map((i) => i.text),
       ],
-
       remindMe: formData.remindMe,
     };
 
     console.log(payload);
+  };
+
+  const handleTimesOfDayChange = (timesOfDay: Record<string, Date[]>) => {
+    setFormData((prev) => ({ ...prev, timesOfDay }));
   };
 
   return (
@@ -233,12 +235,17 @@ function AddManually() {
               <InputField
                 placeholder="Brand Name"
                 name="brandname"
+                value={formData.brandName}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    brandName: e.target.value,
+                  }))
+                }
                 state={errors.brandName ? "error" : "default"}
-                onChange={handleBrandNameChange}
-              ></InputField>
+              />
             </div>
 
-            {/* Dose */}
             {/* Dose */}
             <div className="px-[1rem] py-[0.75rem] flex items-end content-end self-stretch flex-wrap">
               <div className="pb-[0.5rem] flex flex-col items-start">
@@ -252,16 +259,11 @@ function AddManually() {
                 )}
               </div>
               <Dose
-                handleClick={() => setIsDoseOverlayVisible(true)}
-                state={errors.dose ? "error" : "default"}
+                state={errors.dose ? "error" : "default"} // Reflect validation error
+                handleClick={handleDoseClick}
                 value={formData.dose.quantity}
                 unit={formData.dose.unit}
-                onQuantityChange={(e) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    dose: { ...prev.dose, quantity: e.target.value },
-                  }));
-                }}
+                onQuantityChange={handleQuantityChange}
               />
             </div>
 
@@ -270,7 +272,7 @@ function AddManually() {
               isVisible={isDoseOverlayVisible}
               onClick={() => setIsDoseOverlayVisible(false)}
             >
-              <div className="bg-white rounded-xl p-4 min-w-[15.625rem]">
+              <div className="bg-white rounded-xl p-4 w-[15.625rem]">
                 <div className="mb-4">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     SOLID
@@ -279,7 +281,7 @@ function AddManually() {
                     {solidOptions.map((option) => (
                       <button
                         key={option}
-                        className="text-base w-full text-left"
+                        className="text-base w-full text-left cursor-pointer hover:text-[var(--primary-color)]"
                         onClick={() => {
                           setFormData((prev) => ({
                             ...prev,
@@ -302,7 +304,7 @@ function AddManually() {
                     {volumeOptions.map((opt) => (
                       <button
                         key={opt.label}
-                        className="text-base w-full text-left"
+                        className="text-base w-full text-left cursor-pointer hover:text-[var(--primary-color)]"
                         onClick={() => {
                           setFormData((prev) => ({
                             ...prev,
@@ -344,13 +346,13 @@ function AddManually() {
                 isVisible={isFrequencyOverlayVisible}
                 onClick={() => setIsFrequencyOverlayVisible(false)}
               >
-                <div className="bg-white rounded-xl p-4 min-w-[22.375rem]">
+                <div className="bg-white rounded-xl p-4 w-[22.375rem]">
                   <div className="mb-4">
                     <ul className="mt-2 space-y-2">
                       {frequencies.map((option) => (
                         <button
                           key={option}
-                          className="text-base w-full text-left hover:text-[var(--primary-color)]"
+                          className="text-base w-full text-left hover:text-[var(--primary-color)] cursor-pointer"
                           onClick={() => {
                             handleFrequencySelect(option);
                             setIsFrequencyOverlayVisible(false);
@@ -366,19 +368,21 @@ function AddManually() {
             </div>
 
             {/* Time of Day */}
-            <TimeOfDayPicker errors={errors.timesOfDay} />
+            <TimeOfDayPicker
+              errors={errors.timesOfDay}
+              timesOfDay={formData.timesOfDay}
+              onChange={handleTimesOfDayChange}
+            />
 
-            {/* Iteractions */}
-            <InteractionsList
-              onChange={handleInteractionsChange}
-            ></InteractionsList>
+            {/* Interactions */}
+            <InteractionsList></InteractionsList>
 
             {/* Notification */}
             <div className="p-[1rem] flex items-center justify-between">
               <div className="py-[0.62rem] text-[1.0625rem] text-[var(--text-primary)]">
                 <span>Remind me to take this medication</span>
               </div>
-              <Toggle onChange={handleToggleChange}></Toggle>
+              <Toggle></Toggle>
             </div>
           </form>
         </div>

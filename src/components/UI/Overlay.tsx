@@ -18,12 +18,21 @@ const Overlay: React.FC<OverlayProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div
-      onClick={onClick}
-      className="fixed inset-0 flex items-center justify-center z-90"
-      style={{ backgroundColor, opacity }}
-    >
-      <div onClick={(e) => e.stopPropagation()}>{children}</div>
+    <div className="fixed inset-0 flex items-center justify-center z-90">
+      {/* Background layer */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundColor,
+          opacity,
+        }}
+        onClick={onClick}
+      />
+
+      {/* Foreground content */}
+      <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
     </div>
   );
 };

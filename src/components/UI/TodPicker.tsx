@@ -1,9 +1,16 @@
 import { useState, forwardRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Clock, Minus } from "lucide-react"; // <- Import Minus icon
+import { Clock, Minus } from "lucide-react";
 
 const TOD = ["Morning", "Afternoon", "Evening"] as const;
+type TODKey = (typeof TOD)[number];
+
+type TimeOfDayPickerProps = {
+  errors?: string;
+  timesOfDay: Record<TODKey, Date[]>;
+  onChange: (timesOfDay: Record<TODKey, Date[]>) => void;
+};
 
 type CustomTimeInputProps = {
   value?: string;
@@ -12,31 +19,34 @@ type CustomTimeInputProps = {
 };
 
 const CustomTimeInput = forwardRef<HTMLButtonElement, CustomTimeInputProps>(
-  ({ value, onClick }, ref) => (
+  ({ value, onClick, errors, ...rest }, ref) => (
     <button
       type="button"
-      onClick={onClick}
       ref={ref}
-      className="w-full self-stretch flex justify-between items-center px-4 py-3 border border-[#CCC] rounded-lg bg-[#] focus:border-[var(--primary-color)] focus:outline-none"
+      onClick={onClick}
+      {...rest}
+      className={`w-full flex justify-between items-center px-4 py-3 border rounded-lg focus:outline-none ${
+        errors
+          ? "border-[var(--alarm-danger)]"
+          : "border-[#CCC] focus:border-[var(--primary-color)]"
+      }`}
     >
       <span className={value ? "text-base" : "text-[#6B7280]"}>
-        {value || "00:00 AM"}
+        {value || "Pick a time"}
       </span>
       <Clock className="text-[#6B7280]" />
     </button>
   )
 );
 
-export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
-  const [selectedTimeOfDay, setSelectedTimeOfDay] =
-    useState<(typeof TOD)[number]>("Morning");
-  const [timesByTimeOfDay, setTimesByTimeOfDay] = useState<
-    Record<(typeof TOD)[number], Date[]>
-  >({
-    Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
-    Afternoon: [new Date(new Date().setHours(13, 0, 0, 0))],
-    Evening: [new Date(new Date().setHours(18, 0, 0, 0))],
-  });
+CustomTimeInput.displayName = "CustomTimeInput";
+
+export default function TimeOfDayPicker({
+  errors,
+  timesOfDay,
+  onChange,
+}: TimeOfDayPickerProps) {
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<TODKey>("Morning");
 
   const getTimeBounds = () => {
     switch (selectedTimeOfDay) {
@@ -55,68 +65,55 @@ export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
           minTime: new Date().setHours(17, 0, 0, 0),
           maxTime: new Date().setHours(21, 59, 0, 0),
         };
-      default:
-        return { minTime: undefined, maxTime: undefined };
     }
   };
   const { minTime, maxTime } = getTimeBounds();
-  const currentTimes = timesByTimeOfDay[selectedTimeOfDay];
 
-  const handleTimeChange = (date: Date | null, index: number): void => {
+  const handleTimeChange = (date: Date | null, index: number) => {
     if (!date) return;
     const newDate = new Date(date);
+
     if (minTime && maxTime) {
       const min = new Date(minTime).getTime();
       const max = new Date(maxTime).getTime();
-      const time = newDate.getTime();
-      if (time < min) newDate.setTime(min);
-      if (time > max) newDate.setTime(max);
+      if (newDate.getTime() < min) newDate.setTime(min);
+      if (newDate.getTime() > max) newDate.setTime(max);
     }
-    setTimesByTimeOfDay((prev) => {
-      const updated = [...prev[selectedTimeOfDay]];
-      updated[index] = newDate;
-      return { ...prev, [selectedTimeOfDay]: updated };
-    });
+
+    const updatedTimes = [...timesOfDay[selectedTimeOfDay]];
+    updatedTimes[index] = newDate;
+    onChange({ ...timesOfDay, [selectedTimeOfDay]: updatedTimes });
   };
 
   const addTimePicker = () => {
-    let newTime: Date;
-    switch (selectedTimeOfDay) {
-      case "Morning":
-        newTime = new Date(new Date().setHours(8, 0, 0, 0));
-        break;
-      case "Afternoon":
-        newTime = new Date(new Date().setHours(13, 0, 0, 0));
-        break;
-      case "Evening":
-        newTime = new Date(new Date().setHours(18, 0, 0, 0));
-        break;
-      default:
-        newTime = new Date();
-    }
-    setTimesByTimeOfDay((prev) => ({
-      ...prev,
-      [selectedTimeOfDay]: [...prev[selectedTimeOfDay], newTime],
-    }));
+    const defaults = {
+      Morning: new Date(new Date().setHours(8, 0, 0, 0)),
+      Afternoon: new Date(new Date().setHours(13, 0, 0, 0)),
+      Evening: new Date(new Date().setHours(18, 0, 0, 0)),
+    };
+    onChange({
+      ...timesOfDay,
+      [selectedTimeOfDay]: [
+        ...timesOfDay[selectedTimeOfDay],
+        defaults[selectedTimeOfDay],
+      ],
+    });
   };
 
   const removeTimePicker = (index: number) => {
-    setTimesByTimeOfDay((prev) => {
-      const updated = [...prev[selectedTimeOfDay]];
-      updated.splice(index, 1);
-      return { ...prev, [selectedTimeOfDay]: updated };
-    });
+    const updatedTimes = [...timesOfDay[selectedTimeOfDay]];
+    updatedTimes.splice(index, 1);
+    onChange({ ...timesOfDay, [selectedTimeOfDay]: updatedTimes });
   };
 
   return (
     <div className="px-4 py-3">
       <label className="block text-xl font-medium mb-2">Time of Day</label>
       {errors && (
-        <p className="text-[var(--alarm-danger)] text-sm">
-          {errors}
-        </p>
+        <p className="text-[var(--alarm-danger)] text-sm mb-2">{errors}</p>
       )}
 
+      {/* Tabs */}
       <div className="flex gap-2 mb-4">
         {TOD.map((time) => (
           <button
@@ -134,8 +131,9 @@ export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
         ))}
       </div>
 
+      {/* Time pickers */}
       <div className="flex flex-col gap-3">
-        {currentTimes.map((time, index) => (
+        {timesOfDay[selectedTimeOfDay].map((time, index) => (
           <div key={index} className="flex items-center gap-2">
             <DatePicker
               selected={new Date(time)}
@@ -146,10 +144,9 @@ export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
               dateFormat="h:mm aa"
               minTime={minTime ? new Date(minTime) : undefined}
               maxTime={maxTime ? new Date(maxTime) : undefined}
-              customInput={<CustomTimeInput />}
+              // ✅ This will pass a formatted `value` to CustomTimeInput
+              customInput={<CustomTimeInput errors={errors} />}
             />
-
-            {/* 🆕 Minus icon for removing */}
             <button
               type="button"
               onClick={() => removeTimePicker(index)}
@@ -162,7 +159,8 @@ export default function TimeOfDayPicker({errors}:CustomTimeInputProps) {
         ))}
       </div>
 
-      {selectedTimeOfDay && minTime && maxTime && (
+      {/* Range info */}
+      {minTime && maxTime && (
         <p className="text-xs text-[#6B7280] mt-1">
           {selectedTimeOfDay} range:{" "}
           {new Date(minTime).toLocaleTimeString([], {

@@ -1,14 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Checkbox from "./UI/Checkbox";
 import InputField from "./UI/Input";
 import { Minus } from "lucide-react";
 
 type FixedInteraction = { text: string; checked: boolean };
 type CustomInteraction = { text: string; checked: boolean };
-type InteractionsData = {
-  fixedInteractions: FixedInteraction[];
-  customInteractions: CustomInteraction[];
-};
 
 const defaultFixedInteractions: FixedInteraction[] = [
   { text: "With food", checked: false },
@@ -18,11 +14,7 @@ const defaultFixedInteractions: FixedInteraction[] = [
   { text: "Other", checked: false },
 ];
 
-export default function InteractionsList({
-  onChange,
-}: {
-  onChange: (data: InteractionsData) => void;
-}) {
+export default function InteractionsList() {
   const [fixedInteractions, setFixedInteractions] = useState<
     FixedInteraction[]
   >(defaultFixedInteractions);
@@ -31,10 +23,6 @@ export default function InteractionsList({
   >([]);
   const [newInteraction, setNewInteraction] = useState("");
   const [inputState, setInputState] = useState<"default" | "error">("default");
-
-  useEffect(() => {
-    onChange({ fixedInteractions, customInteractions });
-  }, [fixedInteractions, customInteractions]);
 
   const handleToggleFixed = (text: string) => {
     setFixedInteractions((prev) =>
