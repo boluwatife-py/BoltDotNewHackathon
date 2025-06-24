@@ -33,7 +33,7 @@ const settingsItems: {
     text: "Family Management",
   },
   {
-    link: "",
+    link: "/settings/supplement-list",
     icon: SupplementLIst,
     subtext: "Manage your enrolled supplements",
     text: "My Supplement lists",
@@ -61,7 +61,7 @@ const settingsItems: {
 export default function Settings() {
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
-      <HeadInfo text="SafeDoser Assistant" />
+      <HeadInfo text="Settings" />
 
       <div className="flex flex-col px-[1rem]">
         {settingsItems.map((item) => {

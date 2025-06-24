@@ -20,4 +20,20 @@ interface SupplementCardProps {
   onToggleCompleted: (id: number) => void;
 }
 
+export interface Supplement {
+  id: number;
+  name: string;
+  exp: string;
+  qty: string;
+  image: string;
+  brand: string;
+  freqency: string;
+  dose: string;
+  tod: string;
+  iteractions: string;
+  muted: boolean;
+  type: string;
+}
+
+
 export type { SupplementItem, SupplementAlert, SupplementCardProps };

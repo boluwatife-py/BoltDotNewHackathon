@@ -4,7 +4,7 @@ import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
 import SupplementCard from "../components/SupplementCard/SupplementCard";
 import type { SupplementItem } from "../types/Supplement";
-import supplementsData from "../Data/Supplement";
+import supplementsToday from "../Data/Supplement";
 import AddButton from "../components/NewSupp";
 
 const getTimeSlot = (hour: number): "morning" | "afternoon" | "evening" => {
@@ -24,7 +24,7 @@ const Home: React.FC = () => {
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
 
   useEffect(() => {
-    setSupplements(supplementsData);
+    setSupplements(supplementsToday);
   }, []);
 
   const handleToggleMute = (id: number) => {

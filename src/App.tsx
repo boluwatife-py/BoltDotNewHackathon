@@ -11,6 +11,7 @@ import ScanResult from "./pages/Scan/ScanResults";
 import Cvs from "./pages/Scan/Cvs";
 import Chatbot from "./pages/Chatbot";
 import Settings from "./pages/Settings";
+import SupplementList from "./pages/Settings/SupplementList";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
               <Route path="/scan/import" element={<Cvs />} />
               <Route path="/chatbot" element={<Chatbot />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/supplement-list" element={<SupplementList />} />
             </Routes>
           </Layout>
           <BottomNavBar />
