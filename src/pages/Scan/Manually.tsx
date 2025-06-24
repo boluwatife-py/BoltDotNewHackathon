@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TypeButton from "../../components/UI/TypeButton";
 import HeadInfo from "../../components/UI/HeadInfo";
-import Pill from "../../assets/icons/scan-pill.png";
 import InputField from "../../components/UI/Input";
 import Dose from "../../components/UI/Dose";
 import Overlay from "../../components/UI/Overlay";
@@ -10,6 +10,7 @@ import TimeOfDayPicker from "../../components/UI/TodPicker";
 import InteractionsList from "../../components/IteractionList";
 import Toggle from "../../components/UI/Toggle";
 import Button from "../../components/UI/Button";
+import SuppDetails from "../../components/UI/SuppDetails";
 
 type FixedInteraction = { text: string; checked: boolean };
 type CustomInteraction = { text: string; checked: boolean };
@@ -29,6 +30,7 @@ type FormData = {
 };
 
 function AddManually() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     dosageForm: null,
     brandName: "",
@@ -51,6 +53,7 @@ function AddManually() {
     timesOfDay: "",
   });
 
+  const [isLoading, setIsLoading] = useState(false); // NEW LOADING STATE
   const [isDoseOverlayVisible, setIsDoseOverlayVisible] = useState(false);
   const [isFrequencyOverlayVisible, setIsFrequencyOverlayVisible] =
     useState(false);
@@ -92,7 +95,7 @@ function AddManually() {
   };
 
   const handleDoseClick = () => {
-    setIsDoseOverlayVisible(true); // Show overlay for unit selection
+    setIsDoseOverlayVisible(true);
   };
 
   const validateForm = () => {
@@ -135,30 +138,33 @@ function AddManually() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
-    const payload = {
-      supplement: "Vitamin D3",
-      strength: "5000",
-      dosageForm: formData.dosageForm,
-      brandName: formData.brandName,
-      dose: formData.dose,
-      frequency: formData.frequency,
-      timesOfDay: formData.timesOfDay,
-      interactions: [
-        ...formData.interactions.fixedInteractions
-          .filter((i) => i.checked)
-          .map((i) => i.text),
-        ...formData.interactions.customInteractions
-          .filter((i) => i.checked)
-          .map((i) => i.text),
-      ],
-      remindMe: formData.remindMe,
-    };
-
-    console.log(payload);
+    setIsLoading(true); // Set loading true
+    // Simulate API request
+    setTimeout(() => {
+      const payload = {
+        supplement: "Vitamin D3",
+        strength: "5000",
+        dosageForm: formData.dosageForm,
+        brandName: formData.brandName,
+        dose: formData.dose,
+        frequency: formData.frequency,
+        timesOfDay: formData.timesOfDay,
+        interactions: [
+          ...formData.interactions.fixedInteractions
+            .filter((i) => i.checked)
+            .map((i) => i.text),
+          ...formData.interactions.customInteractions
+            .filter((i) => i.checked)
+            .map((i) => i.text),
+        ],
+        remindMe: formData.remindMe,
+      };
+      console.log(payload); // Log final payload
+      setIsLoading(false); // Stop loading
+      navigate("/scan/add/done");
+    }, 2000); // 2-second mock delay
   };
 
   const handleTimesOfDayChange = (timesOfDay: Record<string, Date[]>) => {
@@ -171,19 +177,7 @@ function AddManually() {
       <div className="flex-1 flex flex-col justify-between">
         <div>
           {/* Supp Details */}
-          <div className="px-[1rem] py-[0.75rem] flex items-center self-stretch gap-[0.75rem]">
-            <img
-              src={Pill}
-              alt="SafeDoser"
-              className="w-[4.6875rem] h-[4.6875rem] rounded-[0.5rem] overflow-hidden"
-            />
-            <div className="flex flex-col items-start justify-center">
-              <span className="text-[1.25rem] font-medium ">Vitamin D3</span>
-              <span className="text-[0.75rem] text-[var(--text-placeholder)]">
-                5000 (Strength)
-              </span>
-            </div>
-          </div>
+          <SuppDetails name="Vitamin D3" description="5000 (Strength)"></SuppDetails>
 
           <form action="" onSubmit={(e) => e.preventDefault()}>
             {/* Dosage Form */}
@@ -387,7 +381,7 @@ function AddManually() {
           </form>
         </div>
 
-        <Button text="Save" handleClick={handleSubmit}></Button>
+        <Button text="Save" handleClick={handleSubmit} loading={isLoading} />
       </div>
     </div>
   );

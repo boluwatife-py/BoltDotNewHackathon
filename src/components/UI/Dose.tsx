@@ -24,14 +24,14 @@ export default function Dose({
       }`}
     >
       {/* Input 20% */}
-      <div className="w-1/5">
+      <div className="w-1/4">
         <input
           type="number"
           step={1}
           min={0}
           inputMode="numeric"
           pattern="[0-9]*"
-          className="w-full px-[1rem] py-[0.75rem] text-end rounded-l-[0.75rem] border-r-2 border-r-[#CCC] placeholder-[#6B7280] outline-none"
+          className={`w-full px-[1rem] py-[0.75rem] text-end rounded-l-[0.75rem] border-r-2 border-r-[#CCC] placeholder-[#6B7280] outline-none hide-number-arrows`}
           placeholder="Qty"
           value={value}
           onChange={(e) => onQuantityChange(e.target.value)}

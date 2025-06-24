@@ -38,7 +38,7 @@ export default function Scan() {
   const handleClick = () => {
     switch (selectedId) {
       case "scan-medication":
-        navigate("/scan/barcode");
+        navigate("/scan/byscan");
         break;
       case "manual-entry":
         navigate("/scan/manual");
