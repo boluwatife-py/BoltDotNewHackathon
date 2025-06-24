@@ -67,6 +67,7 @@ export default function Settings() {
         {settingsItems.map((item) => {
           return (
             <SettingsGridItem
+              key={item.text}
               icon={item.icon}
               link={item.link}
               subtext={item.subtext}
