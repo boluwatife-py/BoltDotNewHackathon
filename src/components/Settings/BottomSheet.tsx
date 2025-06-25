@@ -30,6 +30,20 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   // Move the early return after all hooks are declared
   if (!isOpen || !supplement) return null;
 
+  // Calculate background opacity based on drag position
+  const getBackgroundOpacity = () => {
+    if (!isDragging || translateY <= 0) return 0.5;
+    
+    // Fade out as the sheet is dragged down
+    // At 0px drag = 0.5 opacity, at 200px drag = 0 opacity
+    const maxDrag = 200;
+    const minOpacity = 0;
+    const maxOpacity = 0.5;
+    
+    const progress = Math.min(translateY / maxDrag, 1);
+    return maxOpacity - (progress * (maxOpacity - minOpacity));
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     setStartY(e.touches[0].clientY);
@@ -102,9 +116,13 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
 
   return (
     <>
-      {/* Background overlay */}
+      {/* Background overlay with dynamic opacity */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className="fixed inset-0 bg-black z-40 transition-opacity"
+        style={{
+          opacity: isDragging ? getBackgroundOpacity() : 0.5,
+          transition: isDragging ? 'none' : 'opacity 0.3s ease-out'
+        }}
         onClick={onClose}
       />
 
