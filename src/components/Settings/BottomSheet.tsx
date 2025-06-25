@@ -178,25 +178,25 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
 
             {/* Brand */}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Brand</span>
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Brand</span>
               <span className="text-gray-900">{supplement.brand}</span>
             </div>
 
             {/* Dose */}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Dose</span>
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dose</span>
               <span className="text-gray-900">{supplement.dose}</span>
             </div>
 
             {/* Frequency */}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Frequency</span>
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Frequency</span>
               <span className="text-gray-900">{supplement.freqency}</span>
             </div>
 
             {/* Time of the day */}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Time of the day</span>
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Time of the day</span>
               <div className="flex gap-2">
                 {supplement.tod.split(', ').map((time, index) => (
                   <span
