@@ -43,22 +43,22 @@ export default function InteractionsList({ initialData, onChange }: Interactions
     }
   }, [initialData]);
 
-  // Notify parent of changes
-  useEffect(() => {
-    if (onChange) {
-      onChange({
-        fixedInteractions,
-        customInteractions,
-      });
-    }
-  }, [fixedInteractions, customInteractions, onChange]);
-
   const handleToggleFixed = (text: string) => {
-    setFixedInteractions((prev) =>
-      prev.map((item) =>
+    setFixedInteractions((prev) => {
+      const updated = prev.map((item) =>
         item.text === text ? { ...item, checked: !item.checked } : item
-      )
-    );
+      );
+      
+      // Call onChange with updated data
+      if (onChange) {
+        onChange({
+          fixedInteractions: updated,
+          customInteractions,
+        });
+      }
+      
+      return updated;
+    });
   };
 
   const handleAdd = () => {
@@ -66,16 +66,60 @@ export default function InteractionsList({ initialData, onChange }: Interactions
       setInputState("error");
       return;
     }
-    setCustomInteractions((prev) => [
-      ...prev,
-      { text: newInteraction.trim(), checked: true },
-    ]);
+    
+    setCustomInteractions((prev) => {
+      const updated = [
+        ...prev,
+        { text: newInteraction.trim(), checked: true },
+      ];
+      
+      // Call onChange with updated data
+      if (onChange) {
+        onChange({
+          fixedInteractions,
+          customInteractions: updated,
+        });
+      }
+      
+      return updated;
+    });
+    
     setNewInteraction("");
     setInputState("default");
   };
 
   const handleRemove = (text: string) => {
-    setCustomInteractions((prev) => prev.filter((item) => item.text !== text));
+    setCustomInteractions((prev) => {
+      const updated = prev.filter((item) => item.text !== text);
+      
+      // Call onChange with updated data
+      if (onChange) {
+        onChange({
+          fixedInteractions,
+          customInteractions: updated,
+        });
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleToggleCustom = (text: string) => {
+    setCustomInteractions((prev) => {
+      const updated = prev.map((i) =>
+        i.text === text ? { ...i, checked: !i.checked } : i
+      );
+      
+      // Call onChange with updated data
+      if (onChange) {
+        onChange({
+          fixedInteractions,
+          customInteractions: updated,
+        });
+      }
+      
+      return updated;
+    });
   };
 
   const otherChecked = fixedInteractions.find(
@@ -115,15 +159,7 @@ export default function InteractionsList({ initialData, onChange }: Interactions
                 <label className="flex items-center gap-[0.5rem] cursor-pointer flex-1">
                   <Checkbox
                     checked={interaction.checked}
-                    onChange={() => {
-                      setCustomInteractions((prev) =>
-                        prev.map((i) =>
-                          i.text === interaction.text
-                            ? { ...i, checked: !i.checked }
-                            : i
-                        )
-                      );
-                    }}
+                    onChange={() => handleToggleCustom(interaction.text)}
                   />
                   <span>{interaction.text}</span>
                 </label>
