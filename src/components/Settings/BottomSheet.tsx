@@ -20,7 +20,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
 
       {/* Bottom sheet */}
       <div
-        className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl p-4 z-50 transform transition-transform duration-300 ${
+        className={`fixed bottom-[3rem] left-0 right-0 bg-white rounded-t-2xl shadow-xl p-4 transform transition-transform duration-300 ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
