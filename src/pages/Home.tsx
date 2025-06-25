@@ -3,7 +3,6 @@ import GreetingCard from "../components/GreetingCard/GreetingCard";
 import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
 import SupplementCard from "../components/SupplementCard/SupplementCard";
-import LoadingSpinner from "../components/UI/LoadingSpinner";
 import LoadingCard from "../components/UI/LoadingCard";
 import AddButton from "../components/NewSupp";
 import { useSupplements } from "../hooks/useSupplements";
