@@ -1,11 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import GreetingCard from "../components/GreetingCard/GreetingCard";
 import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
 import SupplementCard from "../components/SupplementCard/SupplementCard";
 import LoadingCard from "../components/UI/LoadingCard";
 import AddButton from "../components/NewSupp";
+import NotificationToast from "../components/UI/NotificationToast";
+import NotificationPermissionBanner from "../components/UI/NotificationPermissionBanner";
 import { useSupplements } from "../hooks/useSupplements";
+import { useNotifications } from "../hooks/useNotifications";
+import { type SupplementItem } from "../types/Supplement";
 
 const getTimeSlot = (hour: number): "morning" | "afternoon" | "evening" => {
   if (hour < 12) return "morning";
@@ -22,6 +26,83 @@ const Home: React.FC = () => {
   });
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  
+  // Notification state
+  const [notificationToast, setNotificationToast] = useState<{
+    isVisible: boolean;
+    supplement: SupplementItem | null;
+    type: 'due' | 'missed';
+  }>({
+    isVisible: false,
+    supplement: null,
+    type: 'due',
+  });
+
+  // Handle supplement due notification
+  const handleSupplementDue = (supplement: SupplementItem) => {
+    // Show toast notification
+    setNotificationToast({
+      isVisible: true,
+      supplement,
+      type: 'due',
+    });
+
+    // Send browser notification
+    sendBrowserNotification(
+      'SafeDoser - Time for your supplement!',
+      `It's time to take your ${supplement.name}`,
+      '/vite.svg'
+    );
+
+    // Play notification sound (optional)
+    if ('Audio' in window) {
+      try {
+        const audio = new Audio('/notification-sound.mp3');
+        audio.volume = 0.3;
+        audio.play().catch(() => {
+          // Ignore audio play errors (user interaction required)
+        });
+      } catch (error) {
+        // Ignore audio errors
+      }
+    }
+  };
+
+  // Handle supplement missed notification
+  const handleSupplementMissed = (supplement: SupplementItem) => {
+    // Show toast notification
+    setNotificationToast({
+      isVisible: true,
+      supplement,
+      type: 'missed',
+    });
+
+    // Send browser notification
+    sendBrowserNotification(
+      'SafeDoser - Supplement missed',
+      `You missed your ${supplement.name} at ${supplement.time}`,
+      '/vite.svg'
+    );
+  };
+
+  // Use notifications hook
+  const { sendBrowserNotification } = useNotifications({
+    supplements,
+    onSupplementDue: handleSupplementDue,
+    onSupplementMissed: handleSupplementMissed,
+  });
+
+  // Close notification toast
+  const closeNotificationToast = () => {
+    setNotificationToast(prev => ({ ...prev, isVisible: false }));
+  };
+
+  // Mark supplement as completed from notification
+  const markSupplementCompleted = () => {
+    if (notificationToast.supplement) {
+      handleToggleCompleted(notificationToast.supplement.id);
+    }
+  };
 
   const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") =>
     supplements.filter((supp) => {
@@ -68,6 +149,10 @@ const Home: React.FC = () => {
 
       <div className="p-4">
         <GreetingCard />
+        
+        {/* Notification Permission Banner */}
+        <NotificationPermissionBanner />
+        
         <NoticeCard />
 
         <div className="px-[var(--lg)] py-[var(--slg)] text-center">
@@ -132,6 +217,17 @@ const Home: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Notification Toast */}
+      {notificationToast.supplement && (
+        <NotificationToast
+          isVisible={notificationToast.isVisible}
+          onClose={closeNotificationToast}
+          supplement={notificationToast.supplement}
+          type={notificationToast.type}
+          onMarkCompleted={markSupplementCompleted}
+        />
+      )}
 
       <AddButton />
     </div>
