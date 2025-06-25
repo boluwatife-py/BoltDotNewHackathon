@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useUser } from "../context/UserContext";
 
 export type Message = {
   sender: "user" | "assistant";
@@ -8,24 +9,50 @@ export type Message = {
 export type ErrorType = "network" | "server" | "auth" | undefined;
 
 export function useChat() {
+  const { name } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [errorType, setErrorType] = useState<ErrorType>(undefined);
-  const [lastUserMessage, setLastUserMessage] = useState<string | null>(null); // remember last failed user message
+  const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
+  const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
 
   // 🔄 Fetch chat history on load
   useEffect(() => {
     (async () => {
       try {
         const resp = await fetch("http://127.0.0.1:8000/chat-history");
-        if (!resp.ok) return; // optional error handling
+        if (!resp.ok) {
+          // If backend is not available, show default welcome message
+          setMessages([{
+            sender: "assistant",
+            text: `Hey ${name}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+          }]);
+          setHasLoadedHistory(true);
+          return;
+        }
         const history = await resp.json();
-        setMessages(history); // expecting an array of { sender, text }
+        
+        // If no history exists, show default welcome message
+        if (!history || history.length === 0) {
+          setMessages([{
+            sender: "assistant",
+            text: `Hey ${name}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+          }]);
+        } else {
+          setMessages(history);
+        }
+        setHasLoadedHistory(true);
       } catch (error) {
         console.error("Error loading chat history:", error);
+        // Show default welcome message on error
+        setMessages([{
+          sender: "assistant",
+          text: `Hey ${name}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+        }]);
+        setHasLoadedHistory(true);
       }
     })();
-  }, []);
+  }, [name]);
 
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -60,7 +87,7 @@ export function useChat() {
         ...prev,
         {
           sender: "assistant",
-          text: "Error fetching response.",
+          text: "I'm having trouble connecting right now. Please try again later! 🔄",
         },
       ]);
     } finally {
@@ -82,5 +109,6 @@ export function useChat() {
     sendMessage,
     errorType,
     clearError: clearErrorAndRetry,
+    hasLoadedHistory,
   };
 }

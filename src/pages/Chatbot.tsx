@@ -12,7 +12,7 @@ import { useChat } from "../hooks/useChat";
 export default function Chatbot() {
   const { name, avatarUrl } = useUser();
   const scrollAnchor = useRef<HTMLDivElement>(null);
-  const { messages, isTyping, sendMessage, errorType, clearError } = useChat();
+  const { messages, isTyping, sendMessage, errorType, clearError, hasLoadedHistory } = useChat();
   const [userInput, setUserInput] = useState("");
 
   useLayoutEffect(() => {
@@ -27,6 +27,22 @@ export default function Chatbot() {
     sendMessage(userInput);
     setUserInput("");
   };
+
+  // Show loading state while fetching history
+  if (!hasLoadedHistory) {
+    return (
+      <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
+        <HeadInfo text="SafeDoser Assistant" />
+        <div className="flex-1 p-[1rem] flex items-center justify-center">
+          <div className="flex flex-row gap-2">
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce"></div>
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.3s]"></div>
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.5s]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
@@ -78,14 +94,13 @@ export default function Chatbot() {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            // ❌ don't disable this input
           />
           <button
             className={`flex items-center justify-center relative h-full py-[0.3rem] right-[.75rem] ${
               canSend ? "cursor-pointer" : "cursor-not-allowed"
             }`}
             onClick={handleSend}
-            disabled={!canSend} // ✅ disable *only* the button
+            disabled={!canSend}
           >
             <Send
               className={
