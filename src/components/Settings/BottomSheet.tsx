@@ -170,7 +170,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
           <div className="space-y-4">
             {/* Dosage Form */}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Dosage Form</span>
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dosage Form</span>
               <span className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1">
                 {supplement.type}
               </span>
