@@ -154,7 +154,7 @@ const NoticeCard: React.FC = () => {
 
         {/* Enhanced Pagination */}
         <div className="flex justify-center mt-4">
-          <div className="notice-pagination swiper-pagination !static bg-white/80 backdrop-blur-sm rounded-full px-3 py-2"></div>
+          <div className="notice-pagination swiper-pagination !static px-3 py-2"></div>
         </div>
       </div>
     </div>
