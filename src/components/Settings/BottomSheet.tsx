@@ -13,7 +13,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   const sheetRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
-  const [currentY, setCurrentY] = useState(0);
   const [translateY, setTranslateY] = useState(0);
 
   // Add mouse event listeners
@@ -49,7 +48,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     setStartY(e.touches[0].clientY);
-    setCurrentY(e.touches[0].clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -60,7 +58,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     
     // Only allow dragging down
     if (deltaY > 0) {
-      setCurrentY(touchY);
       setTranslateY(deltaY);
     }
   };
@@ -78,13 +75,11 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     // Reset position
     setTranslateY(0);
     setStartY(0);
-    setCurrentY(0);
   };
 
   const handleMouseStart = (e: React.MouseEvent) => {
     setIsDragging(true);
     setStartY(e.clientY);
-    setCurrentY(e.clientY);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
@@ -95,7 +90,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     
     // Only allow dragging down
     if (deltaY > 0) {
-      setCurrentY(mouseY);
       setTranslateY(deltaY);
     }
   };
@@ -113,7 +107,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     // Reset position
     setTranslateY(0);
     setStartY(0);
-    setCurrentY(0);
   };
 
   const handleEditDetails = () => {

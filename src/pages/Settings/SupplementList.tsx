@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import HeadInfo from "../../components/UI/HeadInfo";
 import { Search } from "lucide-react";
-import SuppList from "../../components/Settings/SupplementList";
 import BottomSheet from "../../components/Settings/BottomSheet";
 import AddButton from "../../components/NewSupp";
 import { supplements } from "../../Data/Supplement";
