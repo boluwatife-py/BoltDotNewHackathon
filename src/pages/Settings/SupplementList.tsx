@@ -2,34 +2,26 @@ import { useState, useRef } from "react";
 import HeadInfo from "../../components/UI/HeadInfo";
 import { Search } from "lucide-react";
 import SuppList from "../../components/Settings/SupplementList";
+import BottomSheet from "../../components/Settings/BottomSheet";
 import AddButton from "../../components/NewSupp";
 import { supplements } from "../../Data/Supplement";
+import { type Supplement } from "../../types/Supplement";
 
 export default function SupplementList() {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-  // interface Supplement {
-  //   id: number;
-  //   name: string;
-  //   exp: string;
-  //   qty: string;
-  //   image: string;
-  //   brand: string;
-  //   freqency: string;
-  //   dose: string;
-  //   tod: string;
-  //   iteractions: string;
-  //   muted: boolean;
-  //   type: string;
-  // }
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [selectedSupp, setSelectedSupp] = useState<Supplement | null>(null);
 
-  // const [selectedSupp, setSelectedSupp] = useState<Supplement | null>(null);
+  const handleOpen = (supplement: Supplement) => {
+    setSelectedSupp(supplement);
+    setIsBottomSheetOpen(true);
+  };
 
-  // const handleOpen = (supplement: Supplement) => {
-  //   setSelectedSupp(supplement);
-  //   setIsBottomSheetOpen(true);
-  // };
+  const handleClose = () => {
+    setIsBottomSheetOpen(false);
+    setSelectedSupp(null);
+  };
 
   const filteredSupplements = supplements.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -54,7 +46,7 @@ export default function SupplementList() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                searchInputRef.current?.blur(); // <- lose focus on enter
+                searchInputRef.current?.blur();
               }
             }}
           />
@@ -68,9 +60,7 @@ export default function SupplementList() {
             <SuppList
               key={s.id}
               supplement={s}
-              onOptionsClick={() => {
-                // handleOpen(s);
-              }}
+              onOptionsClick={() => handleOpen(s)}
             />
           ))
         ) : (
@@ -79,6 +69,13 @@ export default function SupplementList() {
           </p>
         )}
       </div>
+
+      {/* Bottom Sheet */}
+      <BottomSheet
+        isOpen={isBottomSheetOpen}
+        onClose={handleClose}
+        supplement={selectedSupp}
+      />
 
       <AddButton />
     </div>
