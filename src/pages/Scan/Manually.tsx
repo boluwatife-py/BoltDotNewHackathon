@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import TypeButton from "../../components/UI/TypeButton";
 import HeadInfo from "../../components/UI/HeadInfo";
 import InputField from "../../components/UI/Input";
@@ -20,6 +20,7 @@ type InteractionsData = {
 };
 
 type FormData = {
+  supplementName?: string;
   dosageForm: string | null;
   brandName: string;
   dose: { quantity: string; unit: string | null };
@@ -31,18 +32,25 @@ type FormData = {
 
 function AddManually() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if we're in edit mode and have supplement data
+  const editMode = location.state?.editMode || false;
+  const supplementData = location.state?.supplementData;
+
   const [formData, setFormData] = useState<FormData>({
-    dosageForm: null,
-    brandName: "",
-    dose: { quantity: "", unit: null },
-    frequency: null,
-    timesOfDay: {
+    supplementName: supplementData?.supplementName || "Vitamin D3",
+    dosageForm: supplementData?.dosageForm || null,
+    brandName: supplementData?.brandName || "",
+    dose: supplementData?.dose || { quantity: "", unit: null },
+    frequency: supplementData?.frequency || null,
+    timesOfDay: supplementData?.timesOfDay || {
       Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
       Afternoon: [],
       Evening: [],
     },
-    interactions: { fixedInteractions: [], customInteractions: [] },
-    remindMe: false,
+    interactions: supplementData?.interactions || { fixedInteractions: [], customInteractions: [] },
+    remindMe: supplementData?.remindMe !== undefined ? supplementData.remindMe : false,
   });
 
   const [errors, setErrors] = useState({
@@ -53,7 +61,7 @@ function AddManually() {
     timesOfDay: "",
   });
 
-  const [isLoading, setIsLoading] = useState(false); // NEW LOADING STATE
+  const [isLoading, setIsLoading] = useState(false);
   const [isDoseOverlayVisible, setIsDoseOverlayVisible] = useState(false);
   const [isFrequencyOverlayVisible, setIsFrequencyOverlayVisible] =
     useState(false);
@@ -140,11 +148,11 @@ function AddManually() {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true); // Set loading true
+    setIsLoading(true);
     // Simulate API request
     setTimeout(() => {
       const payload = {
-        supplement: "Vitamin D3",
+        supplement: formData.supplementName || "Vitamin D3",
         strength: "5000",
         dosageForm: formData.dosageForm,
         brandName: formData.brandName,
@@ -160,24 +168,49 @@ function AddManually() {
             .map((i) => i.text),
         ],
         remindMe: formData.remindMe,
+        editMode,
       };
-      console.log(payload); // Log final payload
-      setIsLoading(false); // Stop loading
-      navigate("/scan/add/done");
-    }, 2000); // 2-second mock delay
+      console.log(payload);
+      setIsLoading(false);
+      
+      if (editMode) {
+        // If in edit mode, go back to supplement list
+        navigate("/settings/supplement-list");
+      } else {
+        // If adding new, go to done page
+        navigate("/scan/add/done");
+      }
+    }, 2000);
   };
 
   const handleTimesOfDayChange = (timesOfDay: Record<string, Date[]>) => {
     setFormData((prev) => ({ ...prev, timesOfDay }));
   };
 
+  const handleCancel = () => {
+    if (editMode) {
+      // If in edit mode, go back to supplement list
+      navigate("/settings/supplement-list");
+    } else {
+      // If adding new, go back to scan page
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
-      <HeadInfo text="Supplement Details" prevType="Cancel" />
+      <HeadInfo 
+        text={editMode ? "Edit Supplement" : "Supplement Details"} 
+        prevType="Cancel" 
+        onPrevClick={handleCancel}
+      />
       <div className="flex-1 flex flex-col justify-between">
         <div>
           {/* Supp Details */}
-          <SuppDetails name="Vitamin D3" description="5000 (Strength)"></SuppDetails>
+          <SuppDetails 
+            name={formData.supplementName || "Vitamin D3"} 
+            description="5000 (Strength)"
+          />
 
           <form action="" onSubmit={(e) => e.preventDefault()}>
             {/* Dosage Form */}
@@ -253,7 +286,7 @@ function AddManually() {
                 )}
               </div>
               <Dose
-                state={errors.dose ? "error" : "default"} // Reflect validation error
+                state={errors.dose ? "error" : "default"}
                 handleClick={handleDoseClick}
                 value={formData.dose.quantity}
                 unit={formData.dose.unit}
@@ -369,19 +402,26 @@ function AddManually() {
             />
 
             {/* Interactions */}
-            <InteractionsList></InteractionsList>
+            <InteractionsList />
 
             {/* Notification */}
             <div className="p-[1rem] flex items-center justify-between">
               <div className="py-[0.62rem] text-[1.0625rem] text-[var(--text-primary)]">
                 <span>Remind me to take this medication</span>
               </div>
-              <Toggle></Toggle>
+              <Toggle 
+                checked={formData.remindMe}
+                onChange={(checked) => setFormData(prev => ({ ...prev, remindMe: checked }))}
+              />
             </div>
           </form>
         </div>
 
-        <Button text="Save" handleClick={handleSubmit} loading={isLoading} />
+        <Button 
+          text={editMode ? "Update" : "Save"} 
+          handleClick={handleSubmit} 
+          loading={isLoading} 
+        />
       </div>
     </div>
   );

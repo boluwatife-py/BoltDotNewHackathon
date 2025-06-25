@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { type Supplement } from "../../types/Supplement";
 
 interface BottomSheetProps {
@@ -8,6 +9,7 @@ interface BottomSheetProps {
 }
 
 export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheetProps) {
+  const navigate = useNavigate();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -112,6 +114,71 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     setTranslateY(0);
     setStartY(0);
     setCurrentY(0);
+  };
+
+  const handleEditDetails = () => {
+    // Parse the dose to extract quantity and unit
+    const doseMatch = supplement.dose.match(/^(\d+)\s*(.*)$/);
+    const quantity = doseMatch ? doseMatch[1] : "";
+    const unit = doseMatch ? doseMatch[2].trim() : null;
+
+    // Parse times of day - convert string to time periods
+    const timesOfDay = {
+      Morning: [] as Date[],
+      Afternoon: [] as Date[],
+      Evening: [] as Date[]
+    };
+
+    // Simple mapping based on common time periods
+    const timeString = supplement.tod.toLowerCase();
+    if (timeString.includes('morning')) {
+      timesOfDay.Morning = [new Date(new Date().setHours(8, 0, 0, 0))];
+    }
+    if (timeString.includes('afternoon')) {
+      timesOfDay.Afternoon = [new Date(new Date().setHours(13, 0, 0, 0))];
+    }
+    if (timeString.includes('evening') || timeString.includes('night')) {
+      timesOfDay.Evening = [new Date(new Date().setHours(18, 0, 0, 0))];
+    }
+
+    // If no specific time period found, default to morning
+    if (timesOfDay.Morning.length === 0 && timesOfDay.Afternoon.length === 0 && timesOfDay.Evening.length === 0) {
+      timesOfDay.Morning = [new Date(new Date().setHours(8, 0, 0, 0))];
+    }
+
+    // Parse interactions
+    const interactions = {
+      fixedInteractions: [
+        { text: "With food", checked: supplement.iteractions?.toLowerCase().includes('food') || false },
+        { text: "On empty stomach", checked: supplement.iteractions?.toLowerCase().includes('empty') || false },
+        { text: "Avoid alcohol", checked: supplement.iteractions?.toLowerCase().includes('alcohol') || false },
+        { text: "Avoid dairy", checked: supplement.iteractions?.toLowerCase().includes('dairy') || false },
+        { text: "Other", checked: supplement.iteractions && supplement.iteractions !== "None" && !supplement.iteractions.toLowerCase().includes('food') && !supplement.iteractions.toLowerCase().includes('empty') && !supplement.iteractions.toLowerCase().includes('alcohol') && !supplement.iteractions.toLowerCase().includes('dairy') }
+      ],
+      customInteractions: supplement.iteractions && supplement.iteractions !== "None" && !supplement.iteractions.toLowerCase().includes('food') && !supplement.iteractions.toLowerCase().includes('empty') && !supplement.iteractions.toLowerCase().includes('alcohol') && !supplement.iteractions.toLowerCase().includes('dairy') 
+        ? [{ text: supplement.iteractions, checked: true }] 
+        : []
+    };
+
+    // Create the form data object
+    const formData = {
+      supplementName: supplement.name,
+      dosageForm: supplement.type,
+      brandName: supplement.brand,
+      dose: { quantity, unit },
+      frequency: supplement.freqency,
+      timesOfDay,
+      interactions,
+      remindMe: !supplement.muted
+    };
+
+    // Navigate to manual entry with state
+    navigate('/scan/manual', { 
+      state: { 
+        editMode: true, 
+        supplementData: formData 
+      } 
+    });
   };
 
   return (
@@ -234,7 +301,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
           {/* Edit Button */}
           <button
             className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
-            onClick={onClose}
+            onClick={handleEditDetails}
           >
             Edit Details
           </button>
