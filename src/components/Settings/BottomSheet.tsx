@@ -161,7 +161,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
               )}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{supplement.name}</h2>
+              <h2 className="text-[var(--text-primary)] font-medium text-[1.25rem]">{supplement.name}</h2>
               <p className="text-sm text-gray-500">{supplement.qty}</p>
             </div>
           </div>
