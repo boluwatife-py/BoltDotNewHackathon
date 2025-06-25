@@ -14,6 +14,20 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   const [currentY, setCurrentY] = useState(0);
   const [translateY, setTranslateY] = useState(0);
 
+  // Add mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseEnd);
+      };
+    }
+  }, [isDragging, startY, translateY]);
+
+  // Move the early return after all hooks are declared
   if (!isOpen || !supplement) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -85,19 +99,6 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     setStartY(0);
     setCurrentY(0);
   };
-
-  // Add mouse event listeners
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseEnd);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseEnd);
-      };
-    }
-  }, [isDragging, startY, translateY]);
 
   return (
     <>
