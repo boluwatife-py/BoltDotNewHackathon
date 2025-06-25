@@ -64,7 +64,7 @@ const NoticeCard: React.FC = () => {
               el: ".notice-pagination",
             }}
             autoplay={{
-              delay: 5000,
+              delay: 3000,
               disableOnInteraction: false,
             }}
             spaceBetween={0}
