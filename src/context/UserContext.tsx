@@ -1,4 +1,5 @@
 import React, { createContext, useContext, type ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 
 interface User {
   name: string;
@@ -8,7 +9,7 @@ interface User {
 }
 
 const defaultUser: User = {
-  name: "Jodie",
+  name: "User",
   completedDoses: 3,
   totalDoses: 4,
   avatarUrl: "/defaultUser.png",
@@ -16,17 +17,31 @@ const defaultUser: User = {
 
 const UserContext = createContext<User>(defaultUser);
 
-export const useUser = () => useContext(UserContext);
+export const useUser = () => {
+  const { user } = useAuth();
+  const contextUser = useContext(UserContext);
+  
+  // If authenticated, use auth user data, otherwise use default
+  if (user) {
+    return {
+      name: user.name,
+      completedDoses: 3, // This would come from your supplement data
+      totalDoses: 4,     // This would come from your supplement data
+      avatarUrl: user.avatarUrl || "/defaultUser.png",
+    };
+  }
+  
+  return contextUser;
+};
 
 interface UserProviderProps {
   children: ReactNode;
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  // In a real app, you'd fetch this from localStorage or an API
-  const user: User = defaultUser;
-
   return (
-    <UserContext.Provider value={user}>{children}</UserContext.Provider>
+    <UserContext.Provider value={defaultUser}>
+      {children}
+    </UserContext.Provider>
   );
 };

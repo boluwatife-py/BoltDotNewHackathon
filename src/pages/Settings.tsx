@@ -1,5 +1,6 @@
 import HeadInfo from "../components/UI/HeadInfo";
 import SettingsGridItem from "../components/Settings/SettingsGridItem";
+import { useAuth } from "../context/AuthContext";
 import User from "../assets/icons/Settings/user.svg";
 import Reminder from "../assets/icons/Settings/reminder.svg"
 import FamilyManagement from "../assets/icons/Settings/family-management.svg"
@@ -59,11 +60,34 @@ const settingsItems: {
 ];
 
 export default function Settings() {
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
       <HeadInfo text="Settings" />
 
-      <div className="flex flex-col px-[1rem]">
+      {/* User Info Section */}
+      <div className="bg-white mx-4 mt-4 rounded-lg p-4 border border-[var(--border-grey)]">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--primary-light)]">
+            <img
+              src={user?.avatarUrl || "/defaultUser.png"}
+              alt="User avatar"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-[var(--text-primary)]">{user?.name}</h3>
+            <p className="text-sm text-[var(--text-secondary)]">{user?.email}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col px-[1rem] mt-4">
         {settingsItems.map((item) => {
           return (
             <SettingsGridItem
@@ -75,6 +99,16 @@ export default function Settings() {
             ></SettingsGridItem>
           );
         })}
+      </div>
+
+      {/* Logout Button */}
+      <div className="mt-auto p-4">
+        <button
+          onClick={handleLogout}
+          className="w-full py-3 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+        >
+          Sign Out
+        </button>
       </div>
     </div>
   );
