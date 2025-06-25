@@ -89,6 +89,10 @@ function AddManually() {
     setIsDoseOverlayVisible(true);
   };
 
+  const handleInteractionsChange = (interactions: FormData['interactions']) => {
+    setFormData((prev) => ({ ...prev, interactions }));
+  };
+
   const validateForm = () => {
     const newErrors = {
       dosageForm: "",
@@ -385,7 +389,10 @@ function AddManually() {
             />
 
             {/* Interactions */}
-            <InteractionsList />
+            <InteractionsList 
+              initialData={formData.interactions}
+              onChange={handleInteractionsChange}
+            />
 
             {/* Notification */}
             <div className="p-[1rem] flex items-center justify-between">

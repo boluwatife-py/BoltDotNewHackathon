@@ -1,4 +1,4 @@
-import { EllipsisIcon } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import PillImage from "../../assets/images/Pill.jpg";
 import { type Supplement } from "../../types/Supplement";
 
@@ -28,7 +28,7 @@ export default function SuppList({
           {supplement.qty}
         </span>
       </div>
-      <EllipsisIcon
+      <Ellipsis
         className="flex-shrink-0 w-5 h-5 cursor-pointer"
         onClick={onOptionsClick}
       />

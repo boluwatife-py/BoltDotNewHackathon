@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Checkbox from "./UI/Checkbox";
 import InputField from "./UI/Input";
 import { Minus } from "lucide-react";
@@ -14,15 +14,44 @@ const defaultFixedInteractions: FixedInteraction[] = [
   { text: "Other", checked: false },
 ];
 
-export default function InteractionsList() {
-  const [fixedInteractions, setFixedInteractions] = useState<
-    FixedInteraction[]
-  >(defaultFixedInteractions);
-  const [customInteractions, setCustomInteractions] = useState<
-    CustomInteraction[]
-  >([]);
+interface InteractionsListProps {
+  initialData?: {
+    fixedInteractions: FixedInteraction[];
+    customInteractions: CustomInteraction[];
+  };
+  onChange?: (data: {
+    fixedInteractions: FixedInteraction[];
+    customInteractions: CustomInteraction[];
+  }) => void;
+}
+
+export default function InteractionsList({ initialData, onChange }: InteractionsListProps) {
+  const [fixedInteractions, setFixedInteractions] = useState<FixedInteraction[]>(
+    initialData?.fixedInteractions || defaultFixedInteractions
+  );
+  const [customInteractions, setCustomInteractions] = useState<CustomInteraction[]>(
+    initialData?.customInteractions || []
+  );
   const [newInteraction, setNewInteraction] = useState("");
   const [inputState, setInputState] = useState<"default" | "error">("default");
+
+  // Initialize with data if provided
+  useEffect(() => {
+    if (initialData) {
+      setFixedInteractions(initialData.fixedInteractions);
+      setCustomInteractions(initialData.customInteractions);
+    }
+  }, [initialData]);
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (onChange) {
+      onChange({
+        fixedInteractions,
+        customInteractions,
+      });
+    }
+  }, [fixedInteractions, customInteractions, onChange]);
 
   const handleToggleFixed = (text: string) => {
     setFixedInteractions((prev) =>

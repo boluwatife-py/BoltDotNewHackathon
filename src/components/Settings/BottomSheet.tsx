@@ -117,28 +117,58 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   };
 
   const handleEditDetails = () => {
-    // Convert interactions array to the form structure
+    // Define the fixed interaction categories
+    const fixedCategories = [
+      { key: "food", text: "With food" },
+      { key: "empty", text: "On empty stomach" },
+      { key: "alcohol", text: "Avoid alcohol" },
+      { key: "dairy", text: "Avoid dairy" }
+    ];
+
+    // Check which fixed interactions are present
+    const fixedInteractions = [
+      { text: "With food", checked: supplement.interactions.some(i => 
+        i.toLowerCase().includes('food') && !i.toLowerCase().includes('empty')
+      )},
+      { text: "On empty stomach", checked: supplement.interactions.some(i => 
+        i.toLowerCase().includes('empty')
+      )},
+      { text: "Avoid alcohol", checked: supplement.interactions.some(i => 
+        i.toLowerCase().includes('alcohol')
+      )},
+      { text: "Avoid dairy", checked: supplement.interactions.some(i => 
+        i.toLowerCase().includes('dairy')
+      )},
+    ];
+
+    // Find custom interactions (those that don't match fixed categories)
+    const customInteractions = supplement.interactions
+      .filter(interaction => {
+        const lowerInteraction = interaction.toLowerCase();
+        return !fixedCategories.some(category => {
+          switch(category.key) {
+            case "food":
+              return lowerInteraction.includes('food') && !lowerInteraction.includes('empty');
+            case "empty":
+              return lowerInteraction.includes('empty');
+            case "alcohol":
+              return lowerInteraction.includes('alcohol');
+            case "dairy":
+              return lowerInteraction.includes('dairy');
+            default:
+              return false;
+          }
+        });
+      })
+      .map(i => ({ text: i, checked: true }));
+
+    // Set "Other" to checked if there are custom interactions
+    const hasCustomInteractions = customInteractions.length > 0;
+    fixedInteractions.push({ text: "Other", checked: hasCustomInteractions });
+
     const interactions = {
-      fixedInteractions: [
-        { text: "With food", checked: supplement.interactions.some(i => i.toLowerCase().includes('food')) },
-        { text: "On empty stomach", checked: supplement.interactions.some(i => i.toLowerCase().includes('empty')) },
-        { text: "Avoid alcohol", checked: supplement.interactions.some(i => i.toLowerCase().includes('alcohol')) },
-        { text: "Avoid dairy", checked: supplement.interactions.some(i => i.toLowerCase().includes('dairy')) },
-        { text: "Other", checked: supplement.interactions.some(i => 
-          !i.toLowerCase().includes('food') && 
-          !i.toLowerCase().includes('empty') && 
-          !i.toLowerCase().includes('alcohol') && 
-          !i.toLowerCase().includes('dairy')
-        )}
-      ],
-      customInteractions: supplement.interactions
-        .filter(i => 
-          !i.toLowerCase().includes('food') && 
-          !i.toLowerCase().includes('empty') && 
-          !i.toLowerCase().includes('alcohol') && 
-          !i.toLowerCase().includes('dairy')
-        )
-        .map(i => ({ text: i, checked: true }))
+      fixedInteractions,
+      customInteractions
     };
 
     // Create the form data object that matches FormData type
@@ -276,9 +306,9 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
 
             {/* Interactions */}
             {supplement.interactions.length > 0 && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-start">
                 <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap max-w-[60%]">
                   {supplement.interactions.map((interaction, index) => (
                     <span
                       key={index}
