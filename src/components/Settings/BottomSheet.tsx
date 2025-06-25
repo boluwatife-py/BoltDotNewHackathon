@@ -233,7 +233,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
 
           {/* Edit Button */}
           <button
-            className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors"
+            className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={onClose}
           >
             Edit Details
