@@ -210,7 +210,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             </div>
 
             {/* Interactions */}
-            {Supplement.interactions && return(<div className="flex justify-between items-center">
+            {supplement.interactions && return(<div className="flex justify-between items-center">
               <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
               <div className="flex gap-2">
                 {supplement.iteractions === "None" ? (
