@@ -47,17 +47,17 @@ const NotificationPermissionBanner: React.FC = () => {
   if (!showBanner) return null;
 
   return (
-    <div className="bg-[var(--primary-light)] dark:bg-[var(--primary-color)]/10 border border-[var(--primary-color)] rounded-lg p-3 mx-4 mb-4">
+    <div className="bg-[var(--primary-light)] border border-[var(--primary-color)] rounded-lg p-3 mx-4 mb-4">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 mt-0.5">
           <Bell className="w-5 h-5 text-[var(--primary-color)]" />
         </div>
         
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-[var(--text-primary)] dark:text-white text-sm mb-1">
+          <h4 className="font-medium text-[var(--text-primary)] text-sm mb-1">
             Enable Notifications
           </h4>
-          <p className="text-[var(--text-secondary)] dark:text-gray-400 text-xs mb-3">
+          <p className="text-[var(--text-secondary)] text-xs mb-3">
             Get reminded when it's time to take your supplements and never miss a dose.
           </p>
           
@@ -74,7 +74,7 @@ const NotificationPermissionBanner: React.FC = () => {
             
             <button
               onClick={dismissBanner}
-              className="text-[var(--text-secondary)] dark:text-gray-400 text-xs hover:text-[var(--text-primary)] dark:hover:text-white transition-colors"
+              className="text-[var(--text-secondary)] text-xs hover:text-[var(--text-primary)] transition-colors"
             >
               Maybe later
             </button>
@@ -83,7 +83,7 @@ const NotificationPermissionBanner: React.FC = () => {
         
         <button
           onClick={dismissBanner}
-          className="flex-shrink-0 text-[var(--text-secondary)] dark:text-gray-400 hover:text-[var(--text-primary)] dark:hover:text-white transition-colors"
+          className="flex-shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>

@@ -116,8 +116,8 @@ const Home: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-[var(--bg-primary)] dark:bg-gray-900 min-h-[calc(100vh-60px)]">
-        <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] dark:text-white bg-[var(--bg-secondary)] dark:bg-gray-800">
+      <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">
+        <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
           SafeDoser
         </h1>
         
@@ -142,8 +142,8 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="bg-[var(--bg-primary)] dark:bg-gray-900 min-h-[calc(100vh-60px)]">
-      <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] dark:text-white bg-[var(--bg-secondary)] dark:bg-gray-800">
+    <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">
+      <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
         SafeDoser
       </h1>
 
@@ -156,7 +156,7 @@ const Home: React.FC = () => {
         <NoticeCard />
 
         <div className="px-[var(--lg)] py-[var(--slg)] text-center">
-          <h1 className="text-[28px] font-bold text-[var(--text-primary)] dark:text-white tracking-[-0.5px]">
+          <h1 className="text-[28px] font-bold text-[var(--text-primary)] tracking-[-0.5px]">
             Today,{" "}
             <span className="block text-[12px] font-medium">{formattedDate}</span>
           </h1>
@@ -165,8 +165,8 @@ const Home: React.FC = () => {
         {isLoading ? (
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+              <div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
             </div>
             <LoadingCard />
             <LoadingCard />
@@ -210,7 +210,7 @@ const Home: React.FC = () => {
             {morningSupplements.length === 0 &&
               afternoonSupplements.length === 0 &&
               eveningSupplements.length === 0 && (
-                <div className="text-center mt-8 text-[var(--text-light)] dark:text-gray-400 text-base">
+                <div className="text-center mt-8 text-[var(--text-light)] text-base">
                   No supplements scheduled for today. You're all set!
                 </div>
               )}
