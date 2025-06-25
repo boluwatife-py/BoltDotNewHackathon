@@ -1,5 +1,6 @@
 import HeadInfo from "../../components/UI/HeadInfo";
 import MethodCard from "../../components/UI/MethodCard";
+import LoadingSpinner from "../../components/UI/LoadingSpinner";
 import Scan from "../../assets/icons/amazon-csv.svg";
 import Calender from "../../assets/icons/calender.svg";
 import Download from "../../assets/icons/download.svg";
@@ -25,7 +26,7 @@ const method = [
   {
     id: 3,
     icon: Download,
-    text: `Once your report is ready, download it as a CSV file. This is the file you’ll upload to SafeDoser.`,
+    text: `Once your report is ready, download it as a CSV file. This is the file you'll upload to SafeDoser.`,
     title: "Download the CSV",
     subTitle: "Save the CSV file",
   },
@@ -72,6 +73,14 @@ export default function Cvs() {
     };
     reader.readAsText(selectedFile);
   };
+
+  if (isUploading) {
+    return (
+      <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col items-center justify-center">
+        <LoadingSpinner size="lg" text="Processing your CSV file..." />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">

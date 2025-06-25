@@ -4,9 +4,11 @@ import HeadInfo from "../../components/UI/HeadInfo";
 import { Search } from "lucide-react";
 import BottomSheet from "../../components/Settings/BottomSheet";
 import AddButton from "../../components/NewSupp";
-import { supplements } from "../../Data/Supplement";
+import LoadingSpinner from "../../components/UI/LoadingSpinner";
+import LoadingCard from "../../components/UI/LoadingCard";
 import { type SupplementData } from "../../types/FormData";
 import { useBottomSheet } from "../../context/BottomSheetContext";
+import { useSupplementList } from "../../hooks/useSupplementList";
 
 export default function SupplementList() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function SupplementList() {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [selectedSupp, setSelectedSupp] = useState<SupplementData | null>(null);
   const { setIsBottomSheetOpen: setGlobalBottomSheetOpen } = useBottomSheet();
+  const { supplementList, isLoading, error, refetch } = useSupplementList();
 
   const handleOpen = (supplement: SupplementData) => {
     setSelectedSupp(supplement);
@@ -43,9 +46,33 @@ export default function SupplementList() {
     };
   }, [setGlobalBottomSheetOpen]);
 
-  const filteredSupplements = supplements.filter((s) =>
+  const filteredSupplements = supplementList.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (error) {
+    return (
+      <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
+        <HeadInfo 
+          text="My Supplements" 
+          prevType="Close" 
+          onPrevClick={handleBackNavigation}
+        />
+        
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button
+              onClick={refetch}
+              className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
@@ -73,13 +100,22 @@ export default function SupplementList() {
                 searchInputRef.current?.blur();
               }
             }}
+            disabled={isLoading}
           />
         </div>
       </div>
 
-      {/* Filtered list */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {filteredSupplements.length > 0 ? (
+        {isLoading ? (
+          <div className="p-4 space-y-4">
+            <LoadingSpinner text="Loading supplements..." />
+            <LoadingCard />
+            <LoadingCard />
+            <LoadingCard />
+            <LoadingCard />
+          </div>
+        ) : filteredSupplements.length > 0 ? (
           filteredSupplements.map((s) => (
             <SupplementListItem
               key={s.id}
@@ -88,9 +124,19 @@ export default function SupplementList() {
             />
           ))
         ) : (
-          <p className="text-center text-[var(--text-secondary)] mt-8">
-            No supplements found.
-          </p>
+          <div className="text-center mt-8 py-8">
+            <p className="text-[var(--text-secondary)]">
+              {searchQuery ? "No supplements found matching your search." : "No supplements found."}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="mt-2 text-[var(--primary-color)] text-sm hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
         )}
       </div>
 

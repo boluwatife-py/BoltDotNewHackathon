@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingSpinner from "../UI/LoadingSpinner";
 import { type SupplementData } from "../../types/FormData";
 
 interface BottomSheetProps {
@@ -14,6 +15,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [translateY, setTranslateY] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Add mouse event listeners
   useEffect(() => {
@@ -109,7 +111,12 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     setStartY(0);
   };
 
-  const handleEditDetails = () => {
+  const handleEditDetails = async () => {
+    setIsLoading(true);
+    
+    // Simulate loading time for data preparation
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
     // Define the fixed interaction categories
     const fixedCategories = [
       { key: "food", text: "With food" },
@@ -176,6 +183,8 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
       remindMe: supplement.remindMe
     };
 
+    setIsLoading(false);
+
     // Navigate to manual entry with state
     navigate('/scan/manual', { 
       state: { 
@@ -234,102 +243,111 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
           onMouseDown={handleMouseStart}
         />
 
-        {/* Supplement Details */}
-        <div className="space-y-4">
-          {/* Supplement Image and Name */}
-          <div className="flex items-center gap-4 mb-6">
-            <div
-              className="w-16 h-16 rounded-lg bg-orange-200 bg-center bg-cover flex-shrink-0"
-              style={{ backgroundImage: supplement.image ? `url(${supplement.image})` : 'none' }}
-            >
-              {!supplement.image && (
-                <div className="w-full h-full bg-orange-200 rounded-lg flex items-center justify-center">
-                  <span className="text-orange-600 text-2xl">💊</span>
-                </div>
-              )}
-            </div>
-            <div>
-              <h2 className="text-[var(--text-primary)] font-medium text-[1.25rem]">{supplement.name}</h2>
-              <p className="text-sm text-gray-500">{supplement.quantity}</p>
-            </div>
+        {isLoading ? (
+          <div className="py-8">
+            <LoadingSpinner text="Preparing supplement details..." />
           </div>
+        ) : (
+          <>
+            {/* Supplement Details */}
+            <div className="space-y-4">
+              {/* Supplement Image and Name */}
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className="w-16 h-16 rounded-lg bg-orange-200 bg-center bg-cover flex-shrink-0"
+                  style={{ backgroundImage: supplement.image ? `url(${supplement.image})` : 'none' }}
+                >
+                  {!supplement.image && (
+                    <div className="w-full h-full bg-orange-200 rounded-lg flex items-center justify-center">
+                      <span className="text-orange-600 text-2xl">💊</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-[var(--text-primary)] font-medium text-[1.25rem]">{supplement.name}</h2>
+                  <p className="text-sm text-gray-500">{supplement.quantity}</p>
+                </div>
+              </div>
 
-          {/* Details Grid */}
-          <div className="space-y-4">
-            {/* Dosage Form */}
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dosage Form</span>
-              <span className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1">
-                {supplement.dosageForm}
-              </span>
-            </div>
-
-            {/* Brand */}
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Brand</span>
-              <span className="text-gray-900">{supplement.brand}</span>
-            </div>
-
-            {/* Dose */}
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dose</span>
-              <span className="text-gray-900">{supplement.dose.quantity} {supplement.dose.unit}</span>
-            </div>
-
-            {/* Frequency */}
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Frequency</span>
-              <span className="text-gray-900">{supplement.frequency}</span>
-            </div>
-
-            {/* Time of the day */}
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Time of the day</span>
-              <div className="flex gap-2">
-                {formatTimesOfDay().split(', ').map((time, index) => (
-                  <span
-                    key={index}
-                    className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
-                  >
-                    {time}
+              {/* Details Grid */}
+              <div className="space-y-4">
+                {/* Dosage Form */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dosage Form</span>
+                  <span className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1">
+                    {supplement.dosageForm}
                   </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Interactions */}
-            {supplement.interactions.length > 0 && (
-              <div className="flex justify-between items-start">
-                <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
-                <div className="flex gap-2 flex-wrap max-w-[60%]">
-                  {supplement.interactions.map((interaction, index) => (
-                    <span
-                      key={index}
-                      className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
-                    >
-                      {interaction}
-                    </span>
-                  ))}
                 </div>
-              </div>
-            )}
 
-            {supplement.interactions.length === 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
-                <span className="text-gray-500 text-sm">None</span>
-              </div>
-            )}
-          </div>
+                {/* Brand */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Brand</span>
+                  <span className="text-gray-900">{supplement.brand}</span>
+                </div>
 
-          {/* Edit Button */}
-          <button
-            className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
-            onClick={handleEditDetails}
-          >
-            Edit Details
-          </button>
-        </div>
+                {/* Dose */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dose</span>
+                  <span className="text-gray-900">{supplement.dose.quantity} {supplement.dose.unit}</span>
+                </div>
+
+                {/* Frequency */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Frequency</span>
+                  <span className="text-gray-900">{supplement.frequency}</span>
+                </div>
+
+                {/* Time of the day */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Time of the day</span>
+                  <div className="flex gap-2">
+                    {formatTimesOfDay().split(', ').map((time, index) => (
+                      <span
+                        key={index}
+                        className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
+                      >
+                        {time}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interactions */}
+                {supplement.interactions.length > 0 && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
+                    <div className="flex gap-2 flex-wrap max-w-[60%]">
+                      {supplement.interactions.map((interaction, index) => (
+                        <span
+                          key={index}
+                          className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
+                        >
+                          {interaction}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {supplement.interactions.length === 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
+                    <span className="text-gray-500 text-sm">None</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Edit Button */}
+              <button
+                className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={handleEditDetails}
+                disabled={isLoading}
+              >
+                Edit Details
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </>
   );

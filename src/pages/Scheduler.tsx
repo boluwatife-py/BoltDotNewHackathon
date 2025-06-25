@@ -1,45 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isFuture } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import HeadInfo from "../components/UI/HeadInfo";
 import AddButton from "../components/NewSupp";
 import SupplementCard from "../components/SupplementCard/SupplementCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
-import supplementsToday from "../Data/Supplement";
-import type { SupplementItem } from "../types/Supplement";
+import LoadingSpinner from "../components/UI/LoadingSpinner";
+import LoadingCard from "../components/UI/LoadingCard";
+import { useSupplements } from "../hooks/useSupplements";
 
 const Scheduler: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [supplements, setSupplements] = useState<SupplementItem[]>([]);
-
-  useEffect(() => {
-    setSupplements(supplementsToday);
-  }, []);
-
-  const handleToggleMute = (id: number) => {
-    setSupplements((prev) =>
-      prev.map((item) =>
-        item.id === id && !item.completed
-          ? { ...item, muted: !item.muted }
-          : item
-      )
-    );
-  };
-
-  const handleToggleCompleted = (id: number) => {
-    setSupplements((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              completed: !item.completed,
-              muted: !item.completed ? true : item.muted,
-            }
-          : item
-      )
-    );
-  };
+  const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -218,67 +191,90 @@ const Scheduler: React.FC = () => {
             )}
           </div>
 
-          {/* Morning Supplements */}
-          {morningSupplements.length > 0 && (
-            <>
-              <TimeLineTime time="morning" />
-              <div className="mb-6">
-                <SupplementCard
-                  supplements={morningSupplements}
-                  onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
-                />
+          {isLoading ? (
+            <div className="space-y-6">
+              <LoadingSpinner text="Loading schedule..." />
+              <div className="space-y-4">
+                <LoadingCard />
+                <LoadingCard />
+                <LoadingCard />
               </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">{error}</p>
+              <button
+                onClick={refetch}
+                className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Morning Supplements */}
+              {morningSupplements.length > 0 && (
+                <>
+                  <TimeLineTime time="morning" />
+                  <div className="mb-6">
+                    <SupplementCard
+                      supplements={morningSupplements}
+                      onToggleMute={handleToggleMute}
+                      onToggleCompleted={handleToggleCompleted}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Afternoon Supplements */}
+              {afternoonSupplements.length > 0 && (
+                <>
+                  <TimeLineTime time="afternoon" />
+                  <div className="mb-6">
+                    <SupplementCard
+                      supplements={afternoonSupplements}
+                      onToggleMute={handleToggleMute}
+                      onToggleCompleted={handleToggleCompleted}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Evening Supplements */}
+              {eveningSupplements.length > 0 && (
+                <>
+                  <TimeLineTime time="evening" />
+                  <div className="mb-6">
+                    <SupplementCard
+                      supplements={eveningSupplements}
+                      onToggleMute={handleToggleMute}
+                      onToggleCompleted={handleToggleCompleted}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Empty State */}
+              {morningSupplements.length === 0 &&
+                afternoonSupplements.length === 0 &&
+                eveningSupplements.length === 0 && (
+                  <div className="text-center mt-8 py-12">
+                    <div className="w-16 h-16 bg-[var(--border-dark)] rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Calendar className="w-8 h-8 text-[var(--text-placeholder)]" />
+                    </div>
+                    <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
+                      No supplements scheduled
+                    </h3>
+                    <p className="text-[var(--text-secondary)] text-sm">
+                      {isToday(selectedDate) 
+                        ? "You're all set for today!" 
+                        : `No supplements scheduled for ${format(selectedDate, "MMMM d")}`
+                      }
+                    </p>
+                  </div>
+                )}
             </>
           )}
-
-          {/* Afternoon Supplements */}
-          {afternoonSupplements.length > 0 && (
-            <>
-              <TimeLineTime time="afternoon" />
-              <div className="mb-6">
-                <SupplementCard
-                  supplements={afternoonSupplements}
-                  onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Evening Supplements */}
-          {eveningSupplements.length > 0 && (
-            <>
-              <TimeLineTime time="evening" />
-              <div className="mb-6">
-                <SupplementCard
-                  supplements={eveningSupplements}
-                  onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Empty State */}
-          {morningSupplements.length === 0 &&
-            afternoonSupplements.length === 0 &&
-            eveningSupplements.length === 0 && (
-              <div className="text-center mt-8 py-12">
-                <div className="w-16 h-16 bg-[var(--border-dark)] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8 text-[var(--text-placeholder)]" />
-                </div>
-                <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
-                  No supplements scheduled
-                </h3>
-                <p className="text-[var(--text-secondary)] text-sm">
-                  {isToday(selectedDate) 
-                    ? "You're all set for today!" 
-                    : `No supplements scheduled for ${format(selectedDate, "MMMM d")}`
-                  }
-                </p>
-              </div>
-            )}
         </div>
       </div>
 

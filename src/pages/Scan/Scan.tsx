@@ -1,6 +1,6 @@
 import HeadInfo from "../../components/UI/HeadInfo";
 import Plus from "../../assets/icons/plus.svg";
-import PillIcon from "../../assets/icons/LoadPill.svg";
+import LoadingSpinner from "../../components/UI/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import { useRef, useState } from "react";
@@ -21,19 +21,24 @@ function ByScan() {
 
     setIsScanning(true);
 
-    await fetch("/otc/receive", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: shot }),
-    });
+    try {
+      await fetch("/otc/receive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: shot }),
+      });
 
-    setTimeout(() => navigate("/scan/result"), 2000);
+      setTimeout(() => navigate("/scan/result"), 2000);
+    } catch (error) {
+      console.error("Scan failed:", error);
+      setIsScanning(false);
+    }
   };
 
   if (isScanning) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--border-dark)]">
-        <img src={PillIcon} alt="Loading" className="w-16 h-16 animate-spin" />
+        <LoadingSpinner size="lg" text="Analyzing supplement..." />
       </div>
     );
   }
@@ -67,6 +72,7 @@ function ByScan() {
           <button
             className="mt-[1rem] px-[1rem] py-[0.5rem] border border-[var(--text-cancel)] flex items-center cursor-pointer justify-center rounded-[0.75rem] bg-white text-[var(--text-cancel)] gap-[0.25rem] min-w-[12rem] whitespace-nowrap text-[.75rem]"
             onClick={() => navigate("/scan/manual")}
+            disabled={isScanning}
           >
             <img src={Plus} alt="safeDose" />
             <span>Enter supplement manually</span>
@@ -81,7 +87,7 @@ function ByScan() {
                 : "bg-[var(--primary-color)] text-white cursor-pointer"
             }`}
           >
-            Scan
+            {isScanning ? "Scanning..." : "Scan"}
           </button>
         </div>
       </div>
