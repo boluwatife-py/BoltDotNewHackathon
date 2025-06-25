@@ -20,7 +20,7 @@
   transform: scale(1.1);
 }
 
-/* Enhanced hover effects for notice cards */
+/* Enhanced hover effects for notice cards - removed scale transforms */
 .swiper-slide {
   transition: all 0.3s ease;
   border-radius: 16px;
@@ -33,7 +33,7 @@
 }
 
 .swiper-slide:active {
-  transform: translateY(0px) scale(0.98);
+  transform: translateY(0px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 

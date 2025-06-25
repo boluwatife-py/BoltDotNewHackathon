@@ -79,10 +79,10 @@ const NoticeCard: React.FC = () => {
                   className={`relative h-full bg-gradient-to-br ${notice.bgGradient} cursor-pointer group overflow-hidden`}
                   onClick={() => handleNoticeClick(notice.link)}
                 >
-                  {/* Animated Background Pattern */}
+                  {/* Animated Background Pattern - removed scale transforms */}
                   <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-700"></div>
-                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-white rounded-full translate-x-12 translate-y-12 group-hover:scale-150 transition-transform duration-700"></div>
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16 group-hover:opacity-75 transition-opacity duration-700"></div>
+                    <div className="absolute bottom-0 right-0 w-24 h-24 bg-white rounded-full translate-x-12 translate-y-12 group-hover:opacity-75 transition-opacity duration-700"></div>
                   </div>
                   
                   {/* Background Image with Overlay */}
@@ -102,7 +102,7 @@ const NoticeCard: React.FC = () => {
                             {notice.subtitle}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold mb-2 group-hover:scale-105 transition-transform duration-300">
+                        <h3 className="text-xl font-bold mb-2 transition-all duration-300">
                           {notice.title}
                         </h3>
                       </div>
@@ -125,7 +125,7 @@ const NoticeCard: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:bg-white/30 transition-all duration-300">
                           <svg 
                             className="w-5 h-5 text-white group-hover:translate-x-0.5 transition-transform duration-300" 
                             fill="none" 
