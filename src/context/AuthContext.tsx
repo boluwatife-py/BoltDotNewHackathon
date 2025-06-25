@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { authAPI, userAPI } from "../config/api";
 
 interface User {
   id: string;
@@ -36,8 +37,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,29 +49,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (token) {
           // Validate token by fetching user profile
-          const response = await fetch(`${API_BASE_URL}/user/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          const { data } = await userAPI.getProfile(token);
           
-          if (response.ok) {
-            const data = await response.json();
-            setUser({
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.name,
-              age: data.user.age,
-              avatarUrl: data.user.avatar_url
-            });
-          } else {
-            // Token is invalid, clear it
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-          }
+          setUser({
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            age: data.user.age,
+            avatarUrl: data.user.avatar_url
+          });
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
+        // Token is invalid, clear it
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
       } finally {
@@ -87,37 +76,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
+      const { data } = await authAPI.login({ email, password });
+      
+      // Store tokens
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      
+      // Set user data
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        age: data.user.age,
+        avatarUrl: data.user.avatar_url
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Store tokens
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        
-        // Set user data
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
-          age: data.user.age,
-          avatarUrl: data.user.avatar_url
-        });
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || "Login failed" };
-      }
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Login error:', error);
-      return { success: false, error: "Network error. Please try again." };
+      return { success: false, error: error.message || "Login failed" };
     } finally {
       setIsLoading(false);
     }
@@ -127,42 +104,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const requestBody: any = { email, password, name, age };
+      const userData: any = { email, password, name, age };
       if (avatar) {
-        requestBody.avatar = avatar;
+        userData.avatar = avatar;
       }
       
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
+      const { data } = await authAPI.signup(userData);
+      
+      // Store tokens
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      
+      // Set user data
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        age: data.user.age,
+        avatarUrl: data.user.avatar_url
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Store tokens
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        
-        // Set user data
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
-          age: data.user.age,
-          avatarUrl: data.user.avatar_url
-        });
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || "Signup failed" };
-      }
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Signup error:', error);
-      return { success: false, error: "Network error. Please try again." };
+      return { success: false, error: error.message || "Signup failed" };
     } finally {
       setIsLoading(false);
     }
@@ -178,24 +143,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || "Password reset failed" };
-      }
-    } catch (error) {
+      await authAPI.forgotPassword(email);
+      return { success: true };
+    } catch (error: any) {
       console.error('Password reset error:', error);
-      return { success: false, error: "Network error. Please try again." };
+      return { success: false, error: error.message || "Password reset failed" };
     } finally {
       setIsLoading(false);
     }
@@ -209,43 +161,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: "Not authenticated" };
       }
       
-      const response = await fetch(`${API_BASE_URL}/user/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
+      await userAPI.updateProfile(token, data);
+      
+      // Refresh user data
+      const { data: profileData } = await userAPI.getProfile(token);
+      setUser({
+        id: profileData.user.id,
+        email: profileData.user.email,
+        name: profileData.user.name,
+        age: profileData.user.age,
+        avatarUrl: profileData.user.avatar_url
       });
       
-      const responseData = await response.json();
-      
-      if (response.ok) {
-        // Refresh user data
-        const profileResponse = await fetch(`${API_BASE_URL}/user/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          setUser({
-            id: profileData.user.id,
-            email: profileData.user.email,
-            name: profileData.user.name,
-            age: profileData.user.age,
-            avatarUrl: profileData.user.avatar_url
-          });
-        }
-        
-        return { success: true };
-      } else {
-        return { success: false, error: responseData.error || "Profile update failed" };
-      }
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Profile update error:', error);
-      return { success: false, error: "Network error. Please try again." };
+      return { success: false, error: error.message || "Profile update failed" };
     }
   };
 

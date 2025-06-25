@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { chatAPI } from "../config/api";
 
 export type Message = {
   sender: "user" | "assistant";
@@ -7,8 +8,6 @@ export type Message = {
 };
 
 export type ErrorType = "network" | "server" | "auth" | undefined;
-
-const API_BASE_URL = 'http://localhost:8000';
 
 export function useChat() {
   const { user, isAuthenticated } = useAuth();
@@ -34,28 +33,15 @@ export function useChat() {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/chat/history`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.messages && data.messages.length > 0) {
-            setMessages(data.messages);
-          } else {
-            // Default welcome message
-            setMessages([{
-              sender: "assistant",
-              text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant powered by advanced AI. I can help you with questions about your medications, supplements, drug interactions, side effects, and general health concerns. What would you like to know? 💊✨`
-            }]);
-          }
+        const { data } = await chatAPI.getHistory(token);
+        
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
         } else {
-          // Default welcome message on error
+          // Default welcome message
           setMessages([{
             sender: "assistant",
-            text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+            text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant powered by advanced AI. I can help you with questions about your medications, supplements, drug interactions, side effects, and general health concerns. What would you like to know? 💊✨`
           }]);
         }
       } catch (error) {
@@ -90,33 +76,21 @@ export function useChat() {
         throw new Error("No authentication token");
       }
 
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          setErrorType("auth");
-        } else if (response.status >= 500) {
-          setErrorType("server");
-        } else {
-          setErrorType("network");
-        }
-        throw new Error(`Error ${response.status}`);
-      }
-
-      const data = await response.json();
+      const { data } = await chatAPI.sendMessage(token, message);
+      
       const assistantMessage: Message = { sender: "assistant", text: data.reply };
       setMessages((prev) => [...prev, assistantMessage]);
       setLastUserMessage(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
-      if (!errorType) setErrorType("network");
+      
+      if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        setErrorType("auth");
+      } else if (error.message.includes('500') || error.message.includes('server')) {
+        setErrorType("server");
+      } else {
+        setErrorType("network");
+      }
       
       // Fallback response
       const fallbackResponse = generateFallbackResponse(message);
@@ -155,12 +129,7 @@ export function useChat() {
       const token = localStorage.getItem('access_token');
       
       if (token) {
-        await fetch(`${API_BASE_URL}/chat/clear`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        await chatAPI.clearHistory(token);
       }
       
       // Reset to welcome message
