@@ -47,15 +47,30 @@ const Scheduler: React.FC = () => {
   const calendarEnd = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Get supplements for a specific date (mock data for now)
+  // Get supplements for a specific date (more realistic distribution)
   const getSupplementsForDate = (date: Date) => {
-    // For demo purposes, show supplements on certain days
     const dayOfMonth = date.getDate();
-    if (dayOfMonth % 3 === 0) {
+    const isCurrentMonth = date.getMonth() === currentDate.getMonth();
+    
+    // Only show supplements for current month dates
+    if (!isCurrentMonth) return [];
+    
+    // Show supplements on specific patterns to avoid too many dots
+    if (isToday(date)) {
+      // Today shows all supplements
+      return supplements;
+    } else if (dayOfMonth % 7 === 0) {
+      // Every 7th day shows 2 supplements
       return supplements.slice(0, 2);
-    } else if (dayOfMonth % 2 === 0) {
+    } else if (dayOfMonth % 5 === 0) {
+      // Every 5th day shows 1 supplement
       return supplements.slice(0, 1);
+    } else if (dayOfMonth % 3 === 0) {
+      // Every 3rd day shows 3 supplements
+      return supplements.slice(0, 3);
     }
+    
+    // Most days have no supplements scheduled
     return [];
   };
 
@@ -123,6 +138,10 @@ const Scheduler: React.FC = () => {
               const isSelected = isSameDay(day, selectedDate);
               const isTodayDate = isToday(day);
 
+              // Limit to maximum 3 dots
+              const maxDots = 3;
+              const dotsToShow = Math.min(daySupplements.length, maxDots);
+
               return (
                 <button
                   key={day.toISOString()}
@@ -141,11 +160,11 @@ const Scheduler: React.FC = () => {
                     {format(day, "d")}
                   </span>
                   
-                  {/* Supplement indicators */}
-                  {daySupplements.length > 0 && (
+                  {/* Supplement indicators - limited to 3 dots max */}
+                  {dotsToShow > 0 && (
                     <div className="flex justify-center mt-1">
                       <div className="flex gap-1">
-                        {daySupplements.slice(0, 3).map((_, index) => (
+                        {Array.from({ length: dotsToShow }, (_, index) => (
                           <div
                             key={index}
                             className={`w-1 h-1 rounded-full ${
