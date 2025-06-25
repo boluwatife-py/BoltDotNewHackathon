@@ -24,6 +24,7 @@ import Chatbot from "./pages/Chatbot";
 import Settings from "./pages/Settings";
 import SupplementList from "./pages/Settings/SupplementList";
 import Scheduler from "./pages/Scheduler";
+import NotFound from "./pages/NotFound";
 
 // App Routes Component
 function AppRoutes() {
@@ -118,8 +119,8 @@ function AppRoutes() {
               } />
               {/* Redirect auth routes to home if already authenticated */}
               <Route path="/auth/*" element={<Navigate to="/" replace />} />
-              {/* Catch all other routes */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* 404 Page for any unmatched routes */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
           <BottomNavBar />
