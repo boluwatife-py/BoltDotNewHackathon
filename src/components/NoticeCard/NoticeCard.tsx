@@ -52,9 +52,6 @@ const NoticeCard: React.FC = () => {
         <span className="block text-[14px] text-[var(--text-primary)]/80 font-medium font-family-[var(--font-primary)]">
           Notice
         </span>
-        <span className="text-xs text-[var(--text-secondary)] bg-[var(--primary-light)] px-2 py-1 rounded-full">
-          Tap to explore
-        </span>
       </div>
 
       <div className="relative">
