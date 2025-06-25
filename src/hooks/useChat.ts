@@ -87,7 +87,8 @@ export function useChat() {
     try {
       const userContext = getUserContext();
       
-      const response = await fetch('/api/chat', {
+      // Use the Python backend API
+      const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
