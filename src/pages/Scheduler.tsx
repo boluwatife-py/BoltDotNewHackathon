@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isFuture } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import HeadInfo from "../components/UI/HeadInfo";
 import AddButton from "../components/NewSupp";
@@ -47,31 +47,41 @@ const Scheduler: React.FC = () => {
   const calendarEnd = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Get supplements for a specific date (more realistic distribution)
-  const getSupplementsForDate = (date: Date) => {
-    const dayOfMonth = date.getDate();
+  // Get supplement status for a specific date
+  const getSupplementStatusForDate = (date: Date): "taken" | "missed" | null => {
     const isCurrentMonth = date.getMonth() === currentDate.getMonth();
     
-    // Only show supplements for current month dates
-    if (!isCurrentMonth) return [];
+    // No dots for future dates or dates outside current month
+    if (!isCurrentMonth || isFuture(date)) return null;
     
-    // Show supplements on specific patterns to avoid too many dots
+    // For today, check actual supplement completion status
     if (isToday(date)) {
-      // Today shows all supplements
-      return supplements;
-    } else if (dayOfMonth % 7 === 0) {
-      // Every 7th day shows 2 supplements
-      return supplements.slice(0, 2);
-    } else if (dayOfMonth % 5 === 0) {
-      // Every 5th day shows 1 supplement
-      return supplements.slice(0, 1);
-    } else if (dayOfMonth % 3 === 0) {
-      // Every 3rd day shows 3 supplements
-      return supplements.slice(0, 3);
+      const hasCompleted = supplements.some(supp => supp.completed);
+      const hasMissed = supplements.some(supp => !supp.completed);
+      
+      // If any completed, show taken; if any missed, show missed
+      if (hasCompleted) return "taken";
+      if (hasMissed) return "missed";
+      return null;
     }
     
-    // Most days have no supplements scheduled
-    return [];
+    // For past dates, simulate realistic supplement history
+    const dayOfMonth = date.getDate();
+    
+    // Create a realistic pattern where most days are taken, some are missed
+    if (dayOfMonth % 7 === 0) {
+      // Every 7th day might be missed (weekend forgetfulness)
+      return "missed";
+    } else if (dayOfMonth % 3 === 0) {
+      // Every 3rd day is taken
+      return "taken";
+    } else if (dayOfMonth % 5 === 0) {
+      // Every 5th day is taken
+      return "taken";
+    }
+    
+    // Most other past days have no supplements scheduled
+    return null;
   };
 
   const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") =>
@@ -133,14 +143,10 @@ const Scheduler: React.FC = () => {
           {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map(day => {
-              const daySupplements = getSupplementsForDate(day);
+              const supplementStatus = getSupplementStatusForDate(day);
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
               const isSelected = isSameDay(day, selectedDate);
               const isTodayDate = isToday(day);
-
-              // Limit to maximum 3 dots
-              const maxDots = 3;
-              const dotsToShow = Math.min(daySupplements.length, maxDots);
 
               return (
                 <button
@@ -160,19 +166,20 @@ const Scheduler: React.FC = () => {
                     {format(day, "d")}
                   </span>
                   
-                  {/* Supplement indicators - limited to 3 dots max */}
-                  {dotsToShow > 0 && (
+                  {/* Single supplement indicator */}
+                  {supplementStatus && (
                     <div className="flex justify-center mt-1">
-                      <div className="flex gap-1">
-                        {Array.from({ length: dotsToShow }, (_, index) => (
-                          <div
-                            key={index}
-                            className={`w-1 h-1 rounded-full ${
-                              isSelected ? "bg-white" : "bg-[var(--primary-color)]"
-                            }`}
-                          />
-                        ))}
-                      </div>
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          supplementStatus === "taken"
+                            ? isSelected 
+                              ? "bg-white" 
+                              : "bg-[var(--primary-color)]"
+                            : isSelected
+                            ? "bg-white"
+                            : "bg-gray-400"
+                        }`}
+                      />
                     </div>
                   )}
                 </button>
