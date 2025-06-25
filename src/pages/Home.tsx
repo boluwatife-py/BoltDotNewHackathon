@@ -72,7 +72,7 @@ const Home: React.FC = () => {
         <NoticeCard />
 
         <div className="px-[var(--lg)] py-[var(--slg)] text-center">
-          <h1 className="text-[28px] font-bold text-[var(--text-primary)] tracking-[-0.5px] flex">
+          <h1 className="text-[28px] font-bold text-[var(--text-primary)] tracking-[-0.5px] flex justify-center items-end">
             Today,
             <span className="block text-[12px] font-medium">{formattedDate}</span>
           </h1>
