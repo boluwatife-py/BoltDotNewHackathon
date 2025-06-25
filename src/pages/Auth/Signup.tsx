@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Camera } from "lucide-react";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -13,19 +13,23 @@ const Signup: React.FC = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    age: "",
+    avatar: "",
   });
   const [errors, setErrors] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    age: "",
     general: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const validateForm = () => {
-    const newErrors = { name: "", email: "", password: "", confirmPassword: "", general: "" };
+    const newErrors = { name: "", email: "", password: "", confirmPassword: "", age: "", general: "" };
     let isValid = true;
 
     if (!formData.name.trim()) {
@@ -57,6 +61,17 @@ const Signup: React.FC = () => {
       isValid = false;
     }
 
+    if (!formData.age) {
+      newErrors.age = "Age is required";
+      isValid = false;
+    } else {
+      const age = parseInt(formData.age);
+      if (isNaN(age) || age < 13 || age > 120) {
+        newErrors.age = "Age must be between 13 and 120";
+        isValid = false;
+      }
+    }
+
     setErrors(newErrors);
     return isValid;
   };
@@ -66,7 +81,13 @@ const Signup: React.FC = () => {
     
     if (!validateForm()) return;
 
-    const result = await signup(formData.email, formData.password, formData.name);
+    const result = await signup(
+      formData.email, 
+      formData.password, 
+      formData.name, 
+      parseInt(formData.age),
+      formData.avatar || undefined
+    );
     
     if (result.success) {
       navigate("/");
@@ -82,6 +103,31 @@ const Signup: React.FC = () => {
     }
     if (errors.general) {
       setErrors(prev => ({ ...prev, general: "" }));
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, general: "Avatar image must be less than 5MB" }));
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, general: "Please select a valid image file" }));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setFormData(prev => ({ ...prev, avatar: result }));
+        setAvatarPreview(result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -108,6 +154,29 @@ const Signup: React.FC = () => {
                 <p className="text-red-600 text-sm">{errors.general}</p>
               </div>
             )}
+
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center mb-4">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-[var(--border-dark)] border-2 border-[var(--primary-color)] flex items-center justify-center">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-8 h-8 text-[var(--text-placeholder)]" />
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 bg-[var(--primary-color)] text-white rounded-full p-1 cursor-pointer hover:bg-[var(--primary-dark)] transition-colors">
+                  <Camera className="w-4 h-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-2">Optional profile picture</p>
+            </div>
 
             {/* Name */}
             <div>
@@ -140,6 +209,25 @@ const Signup: React.FC = () => {
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Age */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                Age
+              </label>
+              <InputField
+                type="number"
+                placeholder="Enter your age"
+                value={formData.age}
+                onChange={(e) => handleInputChange("age", e.target.value)}
+                state={errors.age ? "error" : "default"}
+                min="13"
+                max="120"
+              />
+              {errors.age && (
+                <p className="text-red-500 text-xs mt-1">{errors.age}</p>
               )}
             </div>
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useUser } from "../context/UserContext";
-import { useSupplements } from "./useSupplements";
+import { useAuth } from "../context/AuthContext";
 
 export type Message = {
   sender: "user" | "assistant";
@@ -9,9 +8,10 @@ export type Message = {
 
 export type ErrorType = "network" | "server" | "auth" | undefined;
 
+const API_BASE_URL = 'http://localhost:8000';
+
 export function useChat() {
-  const { name } = useUser();
-  const { supplements } = useSupplements();
+  const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [errorType, setErrorType] = useState<ErrorType>(undefined);
@@ -20,63 +20,61 @@ export function useChat() {
 
   // Load chat history on mount
   useEffect(() => {
-    const loadChatHistory = () => {
+    const loadChatHistory = async () => {
+      if (!isAuthenticated) {
+        setHasLoadedHistory(true);
+        return;
+      }
+
       try {
-        const savedHistory = localStorage.getItem('safedoser-chat-history');
-        if (savedHistory) {
-          const history = JSON.parse(savedHistory);
-          setMessages(history);
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) {
+          setHasLoadedHistory(true);
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/chat/history`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.messages && data.messages.length > 0) {
+            setMessages(data.messages);
+          } else {
+            // Default welcome message
+            setMessages([{
+              sender: "assistant",
+              text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant powered by advanced AI. I can help you with questions about your medications, supplements, drug interactions, side effects, and general health concerns. What would you like to know? 💊✨`
+            }]);
+          }
         } else {
-          // Default welcome message
+          // Default welcome message on error
           setMessages([{
             sender: "assistant",
-            text: `Hey ${name}! 👋 I'm your personal medical AI assistant powered by advanced AI. I can help you with questions about your medications, supplements, drug interactions, side effects, and general health concerns. What would you like to know? 💊✨`
+            text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
           }]);
         }
-        setHasLoadedHistory(true);
       } catch (error) {
         console.error("Error loading chat history:", error);
         setMessages([{
           sender: "assistant",
-          text: `Hey ${name}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+          text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
         }]);
+      } finally {
         setHasLoadedHistory(true);
       }
     };
 
     loadChatHistory();
-  }, [name]);
-
-  // Save chat history whenever messages change
-  useEffect(() => {
-    if (hasLoadedHistory && messages.length > 0) {
-      localStorage.setItem('safedoser-chat-history', JSON.stringify(messages));
-    }
-  }, [messages, hasLoadedHistory]);
-
-  // Prepare user context for AI
-  const getUserContext = () => {
-    const userAge = 45; // As requested
-    const userSupplements = supplements.map(supp => ({
-      name: supp.name,
-      time: supp.time,
-      tags: supp.tags,
-      type: supp.type,
-      completed: supp.completed,
-      muted: supp.muted,
-      alerts: supp.alerts
-    }));
-
-    return {
-      userName: name,
-      userAge,
-      supplements: userSupplements,
-      currentTime: new Date().toISOString(),
-    };
-  };
+  }, [user, isAuthenticated]);
 
   const sendMessage = async (message: string) => {
-    if (!message.trim()) return;
+    if (!message.trim() || !isAuthenticated) return;
+    
     setErrorType(undefined);
     setLastUserMessage(message);
     
@@ -85,25 +83,30 @@ export function useChat() {
     setIsTyping(true);
 
     try {
-      const userContext = getUserContext();
+      const token = localStorage.getItem('access_token');
       
-      // Use the Python backend API
-      const response = await fetch('http://localhost:8000/chat', {
+      if (!token) {
+        setErrorType("auth");
+        throw new Error("No authentication token");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          message,
-          context: userContext,
-          chatHistory: messages.slice(-10) // Send last 10 messages for context
-        }),
+        body: JSON.stringify({ message }),
       });
 
       if (!response.ok) {
-        if (response.status === 401) setErrorType("auth");
-        else if (response.status === 503) setErrorType("network");
-        else setErrorType("server");
+        if (response.status === 401) {
+          setErrorType("auth");
+        } else if (response.status >= 500) {
+          setErrorType("server");
+        } else {
+          setErrorType("network");
+        }
         throw new Error(`Error ${response.status}`);
       }
 
@@ -115,8 +118,8 @@ export function useChat() {
       console.error("Chat error:", error);
       if (!errorType) setErrorType("network");
       
-      // Fallback response with medical context
-      const fallbackResponse = generateFallbackResponse(message, supplements);
+      // Fallback response
+      const fallbackResponse = generateFallbackResponse(message);
       const assistantMessage: Message = { sender: "assistant", text: fallbackResponse };
       setMessages((prev) => [...prev, assistantMessage]);
     } finally {
@@ -124,22 +127,13 @@ export function useChat() {
     }
   };
 
-  // Generate fallback responses with medical context
-  const generateFallbackResponse = (userMessage: string, userSupplements: any[]) => {
+  // Generate fallback responses when backend is unavailable
+  const generateFallbackResponse = (userMessage: string) => {
     const lowerMessage = userMessage.toLowerCase();
-    
-    // Check if asking about specific supplements
-    const mentionedSupplement = userSupplements.find(supp => 
-      lowerMessage.includes(supp.name.toLowerCase())
-    );
-    
-    if (mentionedSupplement) {
-      return `I see you're asking about ${mentionedSupplement.name}. Based on your current schedule, you take this at ${mentionedSupplement.time}. For specific medical advice about this supplement, please consult with your healthcare provider. I'm currently having trouble connecting to my knowledge base, but I'll be back online soon! 💊`;
-    }
     
     // General medical topics
     if (lowerMessage.includes('interaction') || lowerMessage.includes('side effect')) {
-      return `Drug interactions and side effects are important topics! I'm currently having trouble accessing my medical database, but I recommend checking with your pharmacist or healthcare provider for specific interaction information. You can also use reliable sources like drugs.com or consult your medication guides. I'll be back online soon! ⚕️`;
+      return `I'm having trouble connecting to my medical database right now, but drug interactions and side effects are important topics! I recommend checking with your pharmacist or healthcare provider for specific information. You can also use reliable sources like drugs.com or consult your medication guides. I'll be back online soon! ⚕️`;
     }
     
     if (lowerMessage.includes('dose') || lowerMessage.includes('dosage')) {
@@ -156,6 +150,29 @@ export function useChat() {
     }
   };
 
+  const clearChatHistory = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (token) {
+        await fetch(`${API_BASE_URL}/chat/clear`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+      
+      // Reset to welcome message
+      setMessages([{
+        sender: "assistant",
+        text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
+      }]);
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+    }
+  };
+
   return {
     messages,
     isTyping,
@@ -163,5 +180,6 @@ export function useChat() {
     errorType,
     clearError: clearErrorAndRetry,
     hasLoadedHistory,
+    clearChatHistory,
   };
 }

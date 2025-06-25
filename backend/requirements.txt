@@ -1,9 +1,19 @@
 # Core Flask dependencies
 Flask==3.0.0
 Flask-CORS==4.0.0
+Flask-JWT-Extended==4.6.0
+
+# Supabase client
+supabase==2.3.4
 
 # Google Generative AI (Gemini)
 google-generativeai==0.3.2
+
+# Image processing
+Pillow==10.1.0
+
+# Password hashing
+Werkzeug==3.0.1
 
 # Additional utilities
 python-dotenv==1.0.0
