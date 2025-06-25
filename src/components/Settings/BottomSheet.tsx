@@ -210,8 +210,8 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             </div>
 
             {/* Interactions */}
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Interactions</span>
+            {Supplement.interactions && return(<div className="flex justify-between items-center">
+              <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
               <div className="flex gap-2">
                 {supplement.iteractions === "None" ? (
                   <span className="text-gray-500 text-sm">None</span>
@@ -226,7 +226,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
                   ))
                 )}
               </div>
-            </div>
+            </div>)}
           </div>
 
           {/* Edit Button */}
