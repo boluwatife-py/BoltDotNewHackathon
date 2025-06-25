@@ -1,6 +1,7 @@
 import HeadInfo from "../components/UI/HeadInfo";
 import SettingsGridItem from "../components/Settings/SettingsGridItem";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import User from "../assets/icons/Settings/user.svg";
 import Reminder from "../assets/icons/Settings/reminder.svg"
 import FamilyManagement from "../assets/icons/Settings/family-management.svg"
@@ -40,9 +41,9 @@ const settingsItems: {
     text: "My Supplement lists",
   },
   {
-    link: "",
+    link: "/settings/display-preferences",
     icon: Display,
-    subtext: "Adjust display settings",
+    subtext: "Adjust display settings and theme",
     text: "Display Preferences",
   },
   {
@@ -61,19 +62,31 @@ const settingsItems: {
 
 export default function Settings() {
   const { logout, user } = useAuth();
+  const { isDarkMode, themeMode, fontSize } = useTheme();
 
   const handleLogout = () => {
     logout();
   };
 
+  const getThemeDisplayText = () => {
+    if (themeMode === "system") {
+      return `System (${isDarkMode ? "Dark" : "Light"})`;
+    }
+    return themeMode.charAt(0).toUpperCase() + themeMode.slice(1);
+  };
+
+  const getFontSizeDisplayText = () => {
+    return fontSize.charAt(0).toUpperCase() + fontSize.slice(1);
+  };
+
   return (
-    <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
+    <div className="bg-[var(--bg-primary)] dark:bg-gray-900 min-h-[calc(100vh-60px)] flex flex-col">
       <HeadInfo text="Settings" />
 
       {/* User Info Section */}
-      <div className="bg-white mx-4 mt-4 rounded-lg p-4 border border-[var(--border-grey)]">
+      <div className="bg-[var(--bg-secondary)] dark:bg-gray-800 mx-4 mt-4 rounded-lg p-4 border border-[var(--border-grey)] dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--primary-light)]">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--primary-light)] dark:bg-[var(--primary-color)]/20">
             <img
               src={user?.avatarUrl || "/defaultUser.png"}
               alt="User avatar"
@@ -81,9 +94,21 @@ export default function Settings() {
             />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-[var(--text-primary)]">{user?.name}</h3>
-            <p className="text-sm text-[var(--text-secondary)]">{user?.email}</p>
+            <h3 className="font-semibold text-[var(--text-primary)] dark:text-white">{user?.name}</h3>
+            <p className="text-sm text-[var(--text-secondary)] dark:text-gray-400">{user?.email}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Current Theme & Font Size Display */}
+      <div className="mx-4 mt-4 p-3 bg-[var(--primary-light)] dark:bg-[var(--primary-color)]/10 rounded-lg border border-[var(--primary-color)]/20">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-[var(--text-secondary)] dark:text-gray-400">Current Theme:</span>
+          <span className="font-medium text-[var(--primary-color)]">{getThemeDisplayText()}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm mt-1">
+          <span className="text-[var(--text-secondary)] dark:text-gray-400">Font Size:</span>
+          <span className="font-medium text-[var(--primary-color)]">{getFontSizeDisplayText()}</span>
         </div>
       </div>
 
@@ -105,7 +130,7 @@ export default function Settings() {
       <div className="mt-auto p-4">
         <button
           onClick={handleLogout}
-          className="w-full py-3 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+          className="w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
         >
           Sign Out
         </button>

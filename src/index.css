@@ -31,11 +31,59 @@
   --text-placeholder: #9e9e9e;
   --alarm-danger: #f44336;
   --BananiStyle: #1c1b1f;
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --font-scale: 1;
 }
 
+/* Dark mode variables */
+:root.dark {
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-light: #94a3b8;
+  --border-dark: #1e293b;
+  --border-grey: #334155;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-cancel: #94a3b8;
+  --text-placeholder: #64748b;
+  --BananiStyle: #f8fafc;
+}
+
+/* Font size scaling */
+:root.font-size-small {
+  --font-scale: 0.875;
+}
+
+:root.font-size-medium {
+  --font-scale: 1;
+}
+
+:root.font-size-large {
+  --font-scale: 1.125;
+}
+
+/* Apply font scaling to all text elements */
 body {
   font-family: var(--font-base);
+  font-size: calc(1rem * var(--font-scale));
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Scale specific text sizes */
+h1, h2, h3, h4, h5, h6 {
+  font-size: calc(var(--original-size, 1rem) * var(--font-scale));
+}
+
+.text-xs { font-size: calc(0.75rem * var(--font-scale)); }
+.text-sm { font-size: calc(0.875rem * var(--font-scale)); }
+.text-base { font-size: calc(1rem * var(--font-scale)); }
+.text-lg { font-size: calc(1.125rem * var(--font-scale)); }
+.text-xl { font-size: calc(1.25rem * var(--font-scale)); }
+.text-2xl { font-size: calc(1.5rem * var(--font-scale)); }
+.text-3xl { font-size: calc(1.875rem * var(--font-scale)); }
 
 .wkf {
   font-family: var(--font-heading);
@@ -59,6 +107,59 @@ body {
 .hide-number-arrows {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Dark mode transitions for all elements */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode specific styles */
+.dark .bg-white {
+  background-color: var(--bg-secondary);
+}
+
+.dark .border-gray-200 {
+  border-color: var(--border-grey);
+}
+
+.dark .text-gray-900 {
+  color: var(--text-primary);
+}
+
+.dark .text-gray-600 {
+  color: var(--text-secondary);
+}
+
+.dark .text-gray-500 {
+  color: var(--text-light);
+}
+
+/* Ensure proper contrast in dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--border-dark);
+  color: var(--text-primary);
+  border-color: var(--border-grey);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* Dark mode for specific components */
+.dark .bg-\[var\(--border-dark\)\] {
+  background-color: var(--border-dark);
+}
+
+.dark .bg-\[var\(--bg-primary\)\] {
+  background-color: var(--bg-primary);
+}
+
+.dark .bg-\[var\(--bg-secondary\)\] {
+  background-color: var(--bg-secondary);
 }
 
 @layer utilities {

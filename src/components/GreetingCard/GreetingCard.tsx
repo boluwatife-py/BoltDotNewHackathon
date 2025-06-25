@@ -13,9 +13,9 @@ const GreetingCard: React.FC = () => {
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex flex-col text-[var(--text-primary)]">
+      <div className="flex flex-col text-[var(--text-primary)] dark:text-white">
         <p>Hello, {name}!</p>
-        <span className="text-[12px] font-medium text-[var(--text-light)]">You’ve completed {completedDoses}/{totalDoses} doses today.</span>
+        <span className="text-[12px] font-medium text-[var(--text-light)] dark:text-gray-400">You've completed {completedDoses}/{totalDoses} doses today.</span>
       </div>
     </div>
   );

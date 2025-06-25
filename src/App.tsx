@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TabProvider } from "./context/TabContext";
 import { BottomSheetProvider } from "./context/BottomSheetContext";
 import { UserProvider } from "./context/UserContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 // Auth Pages
@@ -23,6 +24,7 @@ import Cvs from "./pages/Scan/Cvs";
 import Chatbot from "./pages/Chatbot";
 import Settings from "./pages/Settings";
 import SupplementList from "./pages/Settings/SupplementList";
+import DisplayPreferences from "./pages/Settings/DisplayPreferences";
 import Scheduler from "./pages/Scheduler";
 import NotFound from "./pages/NotFound";
 
@@ -32,7 +34,7 @@ function AppRoutes() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--border-dark)] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] dark:bg-gray-900 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="flex flex-row gap-2">
             <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce"></div>
@@ -117,6 +119,11 @@ function AppRoutes() {
                   <SupplementList />
                 </ProtectedRoute>
               } />
+              <Route path="/settings/display-preferences" element={
+                <ProtectedRoute>
+                  <DisplayPreferences />
+                </ProtectedRoute>
+              } />
               {/* Redirect auth routes to home if already authenticated */}
               <Route path="/auth/*" element={<Navigate to="/" replace />} />
               {/* 404 Page for any unmatched routes */}
@@ -132,11 +139,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
 
