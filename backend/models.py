@@ -1,12 +1,8 @@
-"""
-Pydantic models for SafeDoser backend API
-Defines request/response schemas for all endpoints
-"""
-
 from datetime import datetime, date
-from typing import Optional, List, Dict, Any, Union
-from pydantic import BaseModel, EmailStr, validator, Field
-import json
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import re
+import base64
 
 # Base models
 class TimestampMixin(BaseModel):
@@ -21,15 +17,40 @@ class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     age: int = Field(..., ge=13, le=120)
 
+def validate_base64_image(v: Optional[str]) -> Optional[str]:
+    """Validate base64 encoded image"""
+    if v is None:
+        return v
+    # Check if it's a data URL
+    if v.startswith("data:image/"):
+        try:
+            header, data = v.split(",", 1)
+            base64.b64decode(data)
+            return v
+        except Exception:
+            raise ValueError("Invalid base64 image data")
+    else:
+        # Assume raw base64
+        try:
+            base64.b64decode(v)
+            return v
+        except Exception:
+            raise ValueError("Invalid base64 image data")
+
 class UserCreate(UserBase):
     """User creation model"""
     password: str = Field(..., min_length=6)
     avatar: Optional[str] = None  # Base64 encoded image
 
+    @field_validator("avatar")
+    @classmethod
+    def validate_base64_image(cls, v: Optional[str]) -> Optional[str]:
+        return validate_base64_image(v)
+
 class UserLogin(BaseModel):
     """User login model"""
-    email: EmailStr
     password: str
+    email: EmailStr
 
 class UserUpdate(BaseModel):
     """User update model"""
@@ -37,11 +58,17 @@ class UserUpdate(BaseModel):
     age: Optional[int] = Field(None, ge=13, le=120)
     avatar: Optional[str] = None  # Base64 encoded image
 
+    @field_validator("avatar")
+    @classmethod
+    def validate_base64_avatar(cls, v: Optional[str]) -> Optional[str]:
+        """Validate base64 encoded image for avatar"""
+        return validate_base64_image(v)
+
 class UserInDB(UserBase, TimestampMixin):
     """User model as stored in database"""
     id: str
     avatar_url: Optional[str] = None
-    password_hash: str
+    password_hash: Optional[str] = None
 
 class UserResponse(BaseModel):
     """User response model"""
@@ -66,7 +93,7 @@ class SupplementBase(BaseModel):
     """Base supplement model"""
     name: str = Field(..., min_length=1, max_length=255)
     brand: str = Field(..., min_length=1, max_length=255)
-    dosage_form: str = Field(..., min_length=1, max_length=100)
+    dosage_form: Optional[str] = Field(None, min_length=1, max_length=100)
     dose_quantity: str = Field(..., min_length=1, max_length=50)
     dose_unit: str = Field(..., min_length=1, max_length=50)
     frequency: str = Field(..., min_length=1, max_length=100)
@@ -107,7 +134,7 @@ class SupplementResponse(BaseModel):
     user_id: str
     name: str
     brand: str
-    dosage_form: str
+    dosage_form: Optional[str] = None
     dose_quantity: str
     dose_unit: str
     frequency: str
@@ -147,8 +174,16 @@ class SupplementLogBase(BaseModel):
     """Base supplement log model"""
     supplement_id: int
     scheduled_time: str  # Time in HH:MM format
-    status: str = Field(default="pending", regex="^(pending|taken|missed|skipped)$")
+    status: str = Field(default="pending", pattern="^(pending|taken|missed|skipped)$")
     notes: Optional[str] = None
+
+    @field_validator("scheduled_time")
+    @classmethod
+    def validate_time_format(cls, v: str) -> str:
+        """Validate time format (HH:MM)"""
+        if not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", v):
+            raise ValueError("Time must be in HH:MM format")
+        return v
 
 class SupplementLogCreate(SupplementLogBase):
     """Supplement log creation model"""
@@ -156,7 +191,7 @@ class SupplementLogCreate(SupplementLogBase):
 
 class SupplementLogUpdate(BaseModel):
     """Supplement log update model"""
-    status: Optional[str] = Field(None, regex="^(pending|taken|missed|skipped)$")
+    status: Optional[str] = Field(None, pattern="^(pending|taken|missed|skipped)$")
     taken_at: Optional[datetime] = None
     notes: Optional[str] = None
 
@@ -176,6 +211,7 @@ class SupplementLogResponse(BaseModel):
     status: str
     notes: Optional[str] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 # Health check model
 class HealthResponse(BaseModel):
@@ -206,51 +242,12 @@ class ImageUploadResponse(BaseModel):
     """Image upload response model"""
     image_url: str
 
-# Validation helpers
+# Configuration for all models
 class ConfigModel(BaseModel):
-    """Configuration model for Pydantic settings"""
-    
-    class Config:
-        # Allow population by field name and alias
-        allow_population_by_field_name = True
-        # Use enum values instead of enum objects
-        use_enum_values = True
-        # Validate assignment
-        validate_assignment = True
-        # Allow extra fields
-        extra = "forbid"
-
-# Custom validators
-def validate_time_format(v: str) -> str:
-    """Validate time format (HH:MM)"""
-    import re
-    if not re.match(r'^([01]\d|2[0-3]):[0-5]\d$', v):
-        raise ValueError('Time must be in HH:MM format')
-    return v
-
-def validate_base64_image(v: str) -> str:
-    """Validate base64 encoded image"""
-    import base64
-    import re
-    
-    # Check if it's a data URL
-    if v.startswith('data:image/'):
-        # Extract base64 part
-        try:
-            header, data = v.split(',', 1)
-            base64.b64decode(data)
-            return v
-        except Exception:
-            raise ValueError('Invalid base64 image data')
-    else:
-        # Assume it's raw base64
-        try:
-            base64.b64decode(v)
-            return v
-        except Exception:
-            raise ValueError('Invalid base64 image data')
-
-# Apply validators to relevant models
-SupplementLogBase.__validators__['scheduled_time'] = validator('scheduled_time', allow_reuse=True)(validate_time_format)
-UserCreate.__validators__['avatar'] = validator('avatar', allow_reuse=True)(validate_base64_image)
-UserUpdate.__validators__['avatar'] = validator('avatar', allow_reuse=True)(validate_base64_image)
+    """Base configuration for all models"""
+    model_config = {
+        "populate_by_name": True,
+        "use_enum_values": True,
+        "validate_assignment": True,
+        "extra": "forbid",
+    }
