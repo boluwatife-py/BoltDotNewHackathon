@@ -139,7 +139,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
       >
         {/* Drag handle */}
         <div 
-          className="w-[2.375rem] h-[5px] bg-gray-300 rounded mx-auto mb-4 cursor-grab active:cursor-grabbing"
+          className="w-[2.375rem] h-[5px] bg-[#CCC] rounded mx-auto mb-4 cursor-grab active:cursor-grabbing"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
