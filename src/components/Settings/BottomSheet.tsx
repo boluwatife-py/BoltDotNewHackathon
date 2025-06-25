@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
 import { type Supplement } from "../../types/Supplement";
 
 interface BottomSheetProps {
@@ -8,31 +8,124 @@ interface BottomSheetProps {
 }
 
 export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheetProps) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [currentY, setCurrentY] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+
   if (!isOpen || !supplement) return null;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartY(e.touches[0].clientY);
+    setCurrentY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchY - startY;
+    
+    // Only allow dragging down
+    if (deltaY > 0) {
+      setCurrentY(touchY);
+      setTranslateY(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    
+    // If dragged down more than 100px, close the sheet
+    if (translateY > 100) {
+      onClose();
+    }
+    
+    // Reset position
+    setTranslateY(0);
+    setStartY(0);
+    setCurrentY(0);
+  };
+
+  const handleMouseStart = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartY(e.clientY);
+    setCurrentY(e.clientY);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const mouseY = e.clientY;
+    const deltaY = mouseY - startY;
+    
+    // Only allow dragging down
+    if (deltaY > 0) {
+      setCurrentY(mouseY);
+      setTranslateY(deltaY);
+    }
+  };
+
+  const handleMouseEnd = () => {
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    
+    // If dragged down more than 100px, close the sheet
+    if (translateY > 100) {
+      onClose();
+    }
+    
+    // Reset position
+    setTranslateY(0);
+    setStartY(0);
+    setCurrentY(0);
+  };
+
+  // Add mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseEnd);
+      };
+    }
+  }, [isDragging, startY, translateY]);
 
   return (
     <>
       {/* Background overlay */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={onClose}
       />
 
       {/* Bottom sheet */}
       <div
-        className={`fixed bottom-[3.5rem] left-0 right-0 bg-white rounded-t-2xl shadow-xl p-4 transform transition-transform duration-300 ${
+        ref={sheetRef}
+        className={`fixed bottom-[3.5rem] left-0 right-0 bg-white rounded-t-2xl shadow-xl p-4 z-50 transform transition-transform duration-300 ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
+        style={{
+          transform: `translateY(${isDragging ? translateY : 0}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+        }}
       >
         {/* Drag handle */}
-        <div className="w-16 h-1 bg-gray-300 rounded mx-auto mb-4" />
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <button onClick={onClose} className="p-1">
-            <X className="w-6 h-6 text-gray-500" />
-          </button>
-        </div>
+        <div 
+          className="w-16 h-1 bg-gray-300 rounded mx-auto mb-4 cursor-grab active:cursor-grabbing"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseStart}
+        />
 
         {/* Supplement Details */}
         <div className="space-y-4">
