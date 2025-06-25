@@ -1,22 +1,15 @@
-"""
-Database module for SafeDoser backend
-Handles all database operations using Supabase
-"""
-
 import os
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-import asyncio
+from dotenv import load_dotenv
 import json
 
 from supabase import create_client, Client
-import asyncpg
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 class Database:
     """Database connection and operations manager"""
@@ -31,51 +24,18 @@ class Database:
         
         # Initialize Supabase client
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        
-        # For direct database operations
-        self.db_url = os.getenv("SUPABASE_DB_URL")
-        self.pool = None
     
     async def initialize(self):
         """Initialize database connections"""
         try:
-            if self.db_url:
-                # Create connection pool for direct database access
-                self.pool = await asyncpg.create_pool(
-                    self.db_url,
-                    min_size=1,
-                    max_size=10,
-                    command_timeout=60
-                )
-            
             logger.info("Database initialized successfully")
-            
         except Exception as e:
             logger.error(f"Database initialization failed: {str(e)}")
             raise
     
     async def close(self):
         """Close database connections"""
-        if self.pool:
-            await self.pool.close()
-    
-    async def execute_query(self, query: str, *args) -> List[Dict]:
-        """Execute a database query"""
-        if not self.pool:
-            raise RuntimeError("Database not initialized")
-        
-        async with self.pool.acquire() as conn:
-            rows = await conn.fetch(query, *args)
-            return [dict(row) for row in rows]
-    
-    async def execute_command(self, command: str, *args) -> str:
-        """Execute a database command (INSERT, UPDATE, DELETE)"""
-        if not self.pool:
-            raise RuntimeError("Database not initialized")
-        
-        async with self.pool.acquire() as conn:
-            result = await conn.execute(command, *args)
-            return result
+        pass
     
     # User operations
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -364,10 +324,10 @@ class Database:
             return []
 
 # Dependency for FastAPI
-async def get_database() -> Database:
+from typing import AsyncGenerator
+
+async def get_database() -> AsyncGenerator[Database, None]:
     """Get database instance for dependency injection"""
-    # In a real application, you might want to use a connection pool
-    # For now, we'll create a new instance each time
     db = Database()
     await db.initialize()
     try:
