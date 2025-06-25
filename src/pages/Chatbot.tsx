@@ -1,11 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import HeadInfo from "../components/UI/HeadInfo";
-import Assistant, {
-  Attachment as AssistantAttachment,
-} from "../components/Chat/Assistant";
+import Assistant from "../components/Chat/Assistant";
 import UserChat from "../components/Chat/User";
 import { useUser } from "../context/UserContext";
-import PillImage from "../assets/images/Pill.jpg";
 import { Send } from "lucide-react";
 import { useChat } from "../hooks/useChat";
 
@@ -67,16 +64,7 @@ export default function Chatbot() {
               }
               onRetry={clearError}
               onLogin={clearError}
-            >
-              {idx === 2 && (
-                <AssistantAttachment
-                  link="https://localhost:5173"
-                  image={PillImage}
-                  text="Heart Health Support"
-                  subText="Supports cardiac function"
-                />
-              )}
-            </Assistant>
+            />
           )
         )}
 
