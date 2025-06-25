@@ -61,6 +61,16 @@ body {
   appearance: textfield;
 }
 
+/* Hide scrollbar for iOS-style wheel picker */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @layer utilities {
   @keyframes bounce-in {
     0% {
