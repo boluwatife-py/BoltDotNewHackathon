@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { TabProvider } from "./context/TabContext";
+import { BottomSheetProvider } from "./context/BottomSheetContext";
 import Home from "./pages/Home";
 import Scan from "./pages/Scan";
 import AddManually from "./pages/Scan/Manually";
@@ -18,21 +19,23 @@ function App() {
     <div>
       <Router>
         <TabProvider>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/scan" element={<Scan />} />
-              <Route path="/scan/manual" element={<AddManually />} />
-              <Route path="/scan/add/done" element={<SupplementDone />} />
-              <Route path="/scan/byscan" element={<ByScan />} />
-              <Route path="/scan/result" element={<ScanResult />} />
-              <Route path="/scan/import" element={<Cvs />} />
-              <Route path="/chatbot" element={<Chatbot />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/settings/supplement-list" element={<SupplementList />} />
-            </Routes>
-          </Layout>
-          <BottomNavBar />
+          <BottomSheetProvider>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/scan" element={<Scan />} />
+                <Route path="/scan/manual" element={<AddManually />} />
+                <Route path="/scan/add/done" element={<SupplementDone />} />
+                <Route path="/scan/byscan" element={<ByScan />} />
+                <Route path="/scan/result" element={<ScanResult />} />
+                <Route path="/scan/import" element={<Cvs />} />
+                <Route path="/chatbot" element={<Chatbot />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/supplement-list" element={<SupplementList />} />
+              </Routes>
+            </Layout>
+            <BottomNavBar />
+          </BottomSheetProvider>
         </TabProvider>
       </Router>
     </div>

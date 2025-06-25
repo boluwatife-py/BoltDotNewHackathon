@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import PillIcon from "../assets/icons/Pill.svg";
 import { Link } from "react-router-dom";
+import { useBottomSheet } from "../context/BottomSheetContext";
 
 export default function AddButton() {
   const [visible, setVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { isBottomSheetOpen } = useBottomSheet();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +24,11 @@ export default function AddButton() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
+
+  // Hide the button when bottom sheet is open
+  if (isBottomSheetOpen) {
+    return null;
+  }
 
   return (
     <Link to="/scan">

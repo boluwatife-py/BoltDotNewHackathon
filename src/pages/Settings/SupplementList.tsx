@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import HeadInfo from "../../components/UI/HeadInfo";
 import { Search } from "lucide-react";
 import SuppList from "../../components/Settings/SupplementList";
@@ -6,22 +7,42 @@ import BottomSheet from "../../components/Settings/BottomSheet";
 import AddButton from "../../components/NewSupp";
 import { supplements } from "../../Data/Supplement";
 import { type Supplement } from "../../types/Supplement";
+import { useBottomSheet } from "../../context/BottomSheetContext";
 
 export default function SupplementList() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [selectedSupp, setSelectedSupp] = useState<Supplement | null>(null);
+  const { setIsBottomSheetOpen: setGlobalBottomSheetOpen } = useBottomSheet();
 
   const handleOpen = (supplement: Supplement) => {
     setSelectedSupp(supplement);
     setIsBottomSheetOpen(true);
+    setGlobalBottomSheetOpen(true);
   };
 
   const handleClose = () => {
     setIsBottomSheetOpen(false);
     setSelectedSupp(null);
+    setGlobalBottomSheetOpen(false);
   };
+
+  const handleBackNavigation = () => {
+    if (isBottomSheetOpen) {
+      handleClose();
+    } else {
+      navigate("/settings");
+    }
+  };
+
+  // Close bottom sheet when component unmounts (navigation away)
+  useEffect(() => {
+    return () => {
+      setGlobalBottomSheetOpen(false);
+    };
+  }, [setGlobalBottomSheetOpen]);
 
   const filteredSupplements = supplements.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -29,7 +50,11 @@ export default function SupplementList() {
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
-      <HeadInfo text="My Supplements" prevType="Close" />
+      <HeadInfo 
+        text="My Supplements" 
+        prevType="Close" 
+        onPrevClick={handleBackNavigation}
+      />
 
       {/* Search */}
       <div className="px-[1rem] py-[0.75rem]">
