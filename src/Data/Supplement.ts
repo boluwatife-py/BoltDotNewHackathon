@@ -1,4 +1,5 @@
 import { type SupplementItem } from "../types/Supplement";
+import { type SupplementData } from "../types/FormData";
 
 const supplementsToday: SupplementItem[] = [
   {
@@ -67,118 +68,174 @@ const supplementsToday: SupplementItem[] = [
 
 export default supplementsToday;
 
-// data/supplementsData.ts
-export const supplements = [
+// Updated supplements data with proper typing
+export const supplements: SupplementData[] = [
   {
     id: 1,
     name: "Omega-3 Fish Oil",
-    exp: "2025-03-15",
-    qty: "1200mg",
-    image: "",
     brand: "NutriHealth",
-    freqency: "Daily",
-    dose: "2 capsules",
-    tod: "Morning",
-    iteractions: "None",
-    muted: false,
-    type: "Fish Oil",
+    dosageForm: "Softgel",
+    dose: {
+      quantity: "2",
+      unit: "Capsule"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: []
+    },
+    interactions: [],
+    remindMe: true,
+    expirationDate: "2025-03-15",
+    quantity: "120 softgels",
+    image: ""
   },
   {
     id: 2,
     name: "Vitamin D3",
-    exp: "2026-08-10",
-    qty: "5000 IU",
-    image: "",
     brand: "Solaray",
-    freqency: "Daily",
-    dose: "1 softgel",
-    tod: "Evening",
-    iteractions: "Avoid with high calcium",
-    muted: false,
-    type: "Vitamin",
+    dosageForm: "Softgel",
+    dose: {
+      quantity: "1",
+      unit: "Softgel"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [],
+      Afternoon: [],
+      Evening: [new Date(new Date().setHours(18, 0, 0, 0))]
+    },
+    interactions: ["Avoid with high calcium"],
+    remindMe: true,
+    expirationDate: "2026-08-10",
+    quantity: "5000 IU",
+    image: ""
   },
   {
     id: 3,
     name: "Magnesium Citrate",
-    exp: "2025-12-01",
-    qty: "200mg",
-    image: "",
     brand: "Nature's Best",
-    freqency: "Twice daily",
-    dose: "1 tablet",
-    tod: "Morning, Evening",
-    iteractions: "Mild laxative",
-    muted: false,
-    type: "Mineral",
+    dosageForm: "Tablet",
+    dose: {
+      quantity: "1",
+      unit: "Tablet"
+    },
+    frequency: "Twice daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: [new Date(new Date().setHours(20, 0, 0, 0))]
+    },
+    interactions: ["Mild laxative effect"],
+    remindMe: true,
+    expirationDate: "2025-12-01",
+    quantity: "200mg",
+    image: ""
   },
   {
     id: 4,
     name: "Multivitamin Plus",
-    exp: "2025-07-22",
-    qty: "1 tablet",
-    image: "",
     brand: "Centrum",
-    freqency: "Daily",
-    dose: "1 per day",
-    tod: "Morning",
-    iteractions: "Avoid with other vitamin A supplements",
-    muted: false,
-    type: "Multivitamin",
+    dosageForm: "Tablet",
+    dose: {
+      quantity: "1",
+      unit: "Tablet"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: []
+    },
+    interactions: ["Avoid with other vitamin A supplements"],
+    remindMe: true,
+    expirationDate: "2025-07-22",
+    quantity: "1 tablet",
+    image: ""
   },
   {
     id: 5,
     name: "Probiotic Blend",
-    exp: "2025-09-10",
-    qty: "10 billion CFU",
-    image: "",
     brand: "GutHealth",
-    freqency: "Daily",
-    dose: "1 capsule",
-    tod: "Night",
-    iteractions: "None",
-    muted: false,
-    type: "Probiotic",
+    dosageForm: "Pill",
+    dose: {
+      quantity: "1",
+      unit: "Capsule"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [],
+      Afternoon: [],
+      Evening: [new Date(new Date().setHours(21, 0, 0, 0))]
+    },
+    interactions: [],
+    remindMe: true,
+    expirationDate: "2025-09-10",
+    quantity: "10 billion CFU",
+    image: ""
   },
   {
     id: 6,
     name: "Collagen Peptides",
-    exp: "2025-06-18",
-    qty: "5000mg",
-    image: "",
     brand: "BeautyPlus",
-    freqency: "Daily",
-    dose: "2 scoops",
-    tod: "Morning",
-    iteractions: "Avoid with blood thinners",
-    muted: false,
-    type: "Collagen",
+    dosageForm: "Powder",
+    dose: {
+      quantity: "2",
+      unit: "scoop"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: []
+    },
+    interactions: ["Avoid with blood thinners"],
+    remindMe: true,
+    expirationDate: "2025-06-18",
+    quantity: "5000mg",
+    image: ""
   },
   {
     id: 7,
     name: "Turmeric Extract",
-    exp: "2025-04-01",
-    qty: "1000mg",
-    image: "",
     brand: "HerbalLife",
-    freqency: "Daily",
-    dose: "1 capsule",
-    tod: "Morning",
-    iteractions: "Monitor with blood thinners",
-    muted: false,
-    type: "Herbal",
+    dosageForm: "Pill",
+    dose: {
+      quantity: "1",
+      unit: "Capsule"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: []
+    },
+    interactions: ["Monitor with blood thinners"],
+    remindMe: true,
+    expirationDate: "2025-04-01",
+    quantity: "1000mg",
+    image: ""
   },
   {
     id: 8,
     name: "Calcium + Vitamin D",
-    exp: "2025-08-30",
-    qty: "1000mg",
-    image: "",
     brand: "BoneSupport",
-    freqency: "Daily",
-    dose: "1 tablet",
-    tod: "Morning",
-    iteractions: "Avoid excess iron supplements",
-    muted: false,
-    type: "Mineral",
+    dosageForm: "Tablet",
+    dose: {
+      quantity: "1",
+      unit: "Tablet"
+    },
+    frequency: "Once daily",
+    timesOfDay: {
+      Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
+      Afternoon: [],
+      Evening: []
+    },
+    interactions: ["Avoid excess iron supplements"],
+    remindMe: true,
+    expirationDate: "2025-08-30",
+    quantity: "1000mg",
+    image: ""
   },
 ];

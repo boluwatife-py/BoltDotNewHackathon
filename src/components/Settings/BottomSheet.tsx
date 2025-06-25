@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { type Supplement } from "../../types/Supplement";
+import { type SupplementData } from "../../types/FormData";
 
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  supplement: Supplement | null;
+  supplement: SupplementData | null;
 }
 
 export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheetProps) {
@@ -117,59 +117,40 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
   };
 
   const handleEditDetails = () => {
-    // Parse the dose to extract quantity and unit
-    const doseMatch = supplement.dose.match(/^(\d+)\s*(.*)$/);
-    const quantity = doseMatch ? doseMatch[1] : "";
-    const unit = doseMatch ? doseMatch[2].trim() : null;
-
-    // Parse times of day - convert string to time periods
-    const timesOfDay = {
-      Morning: [] as Date[],
-      Afternoon: [] as Date[],
-      Evening: [] as Date[]
-    };
-
-    // Simple mapping based on common time periods
-    const timeString = supplement.tod.toLowerCase();
-    if (timeString.includes('morning')) {
-      timesOfDay.Morning = [new Date(new Date().setHours(8, 0, 0, 0))];
-    }
-    if (timeString.includes('afternoon')) {
-      timesOfDay.Afternoon = [new Date(new Date().setHours(13, 0, 0, 0))];
-    }
-    if (timeString.includes('evening') || timeString.includes('night')) {
-      timesOfDay.Evening = [new Date(new Date().setHours(18, 0, 0, 0))];
-    }
-
-    // If no specific time period found, default to morning
-    if (timesOfDay.Morning.length === 0 && timesOfDay.Afternoon.length === 0 && timesOfDay.Evening.length === 0) {
-      timesOfDay.Morning = [new Date(new Date().setHours(8, 0, 0, 0))];
-    }
-
-    // Parse interactions
+    // Convert interactions array to the form structure
     const interactions = {
       fixedInteractions: [
-        { text: "With food", checked: supplement.iteractions?.toLowerCase().includes('food') || false },
-        { text: "On empty stomach", checked: supplement.iteractions?.toLowerCase().includes('empty') || false },
-        { text: "Avoid alcohol", checked: supplement.iteractions?.toLowerCase().includes('alcohol') || false },
-        { text: "Avoid dairy", checked: supplement.iteractions?.toLowerCase().includes('dairy') || false },
-        { text: "Other", checked: supplement.iteractions && supplement.iteractions !== "None" && !supplement.iteractions.toLowerCase().includes('food') && !supplement.iteractions.toLowerCase().includes('empty') && !supplement.iteractions.toLowerCase().includes('alcohol') && !supplement.iteractions.toLowerCase().includes('dairy') }
+        { text: "With food", checked: supplement.interactions.some(i => i.toLowerCase().includes('food')) },
+        { text: "On empty stomach", checked: supplement.interactions.some(i => i.toLowerCase().includes('empty')) },
+        { text: "Avoid alcohol", checked: supplement.interactions.some(i => i.toLowerCase().includes('alcohol')) },
+        { text: "Avoid dairy", checked: supplement.interactions.some(i => i.toLowerCase().includes('dairy')) },
+        { text: "Other", checked: supplement.interactions.some(i => 
+          !i.toLowerCase().includes('food') && 
+          !i.toLowerCase().includes('empty') && 
+          !i.toLowerCase().includes('alcohol') && 
+          !i.toLowerCase().includes('dairy')
+        )}
       ],
-      customInteractions: supplement.iteractions && supplement.iteractions !== "None" && !supplement.iteractions.toLowerCase().includes('food') && !supplement.iteractions.toLowerCase().includes('empty') && !supplement.iteractions.toLowerCase().includes('alcohol') && !supplement.iteractions.toLowerCase().includes('dairy') 
-        ? [{ text: supplement.iteractions, checked: true }] 
-        : []
+      customInteractions: supplement.interactions
+        .filter(i => 
+          !i.toLowerCase().includes('food') && 
+          !i.toLowerCase().includes('empty') && 
+          !i.toLowerCase().includes('alcohol') && 
+          !i.toLowerCase().includes('dairy')
+        )
+        .map(i => ({ text: i, checked: true }))
     };
 
-    // Create the form data object
+    // Create the form data object that matches FormData type
     const formData = {
       supplementName: supplement.name,
-      dosageForm: supplement.type,
+      dosageForm: supplement.dosageForm,
       brandName: supplement.brand,
-      dose: { quantity, unit },
-      frequency: supplement.freqency,
-      timesOfDay,
+      dose: supplement.dose,
+      frequency: supplement.frequency,
+      timesOfDay: supplement.timesOfDay,
       interactions,
-      remindMe: !supplement.muted
+      remindMe: supplement.remindMe
     };
 
     // Navigate to manual entry with state
@@ -179,6 +160,23 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
         supplementData: formData 
       } 
     });
+  };
+
+  // Helper function to format times of day for display
+  const formatTimesOfDay = () => {
+    const periods = [];
+    
+    if (supplement.timesOfDay.Morning.length > 0) {
+      periods.push("Morning");
+    }
+    if (supplement.timesOfDay.Afternoon.length > 0) {
+      periods.push("Afternoon");
+    }
+    if (supplement.timesOfDay.Evening.length > 0) {
+      periods.push("Evening");
+    }
+    
+    return periods.join(", ");
   };
 
   return (
@@ -229,7 +227,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             </div>
             <div>
               <h2 className="text-[var(--text-primary)] font-medium text-[1.25rem]">{supplement.name}</h2>
-              <p className="text-sm text-gray-500">{supplement.qty}</p>
+              <p className="text-sm text-gray-500">{supplement.quantity}</p>
             </div>
           </div>
 
@@ -239,7 +237,7 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             <div className="flex justify-between items-center">
               <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dosage Form</span>
               <span className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1">
-                {supplement.type}
+                {supplement.dosageForm}
               </span>
             </div>
 
@@ -252,20 +250,20 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             {/* Dose */}
             <div className="flex justify-between items-center">
               <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Dose</span>
-              <span className="text-gray-900">{supplement.dose}</span>
+              <span className="text-gray-900">{supplement.dose.quantity} {supplement.dose.unit}</span>
             </div>
 
             {/* Frequency */}
             <div className="flex justify-between items-center">
               <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Frequency</span>
-              <span className="text-gray-900">{supplement.freqency}</span>
+              <span className="text-gray-900">{supplement.frequency}</span>
             </div>
 
             {/* Time of the day */}
             <div className="flex justify-between items-center">
               <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Time of the day</span>
               <div className="flex gap-2">
-                {supplement.tod.split(', ').map((time, index) => (
+                {formatTimesOfDay().split(', ').map((time, index) => (
                   <span
                     key={index}
                     className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
@@ -277,23 +275,26 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
             </div>
 
             {/* Interactions */}
-            {supplement.iteractions && (
+            {supplement.interactions.length > 0 && (
               <div className="flex justify-between items-center">
                 <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
-                <div className="flex gap-2">
-                  {supplement.iteractions === "None" ? (
-                    <span className="text-gray-500 text-sm">None</span>
-                  ) : (
-                    supplement.iteractions.split(', ').map((interaction, index) => (
-                      <span
-                        key={index}
-                        className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
-                      >
-                        {interaction}
-                      </span>
-                    ))
-                  )}
+                <div className="flex gap-2 flex-wrap">
+                  {supplement.interactions.map((interaction, index) => (
+                    <span
+                      key={index}
+                      className="bg-[var(--primary-light)] text-[var(--primary-color)] text-xs rounded-full px-3 py-1"
+                    >
+                      {interaction}
+                    </span>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {supplement.interactions.length === 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--text-primary)] font-semibold text-[1.0625rem]">Interactions</span>
+                <span className="text-gray-500 text-sm">None</span>
               </div>
             )}
           </div>

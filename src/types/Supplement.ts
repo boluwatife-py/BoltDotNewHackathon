@@ -20,6 +20,7 @@ interface SupplementCardProps {
   onToggleCompleted: (id: number) => void;
 }
 
+// Legacy supplement type for backward compatibility
 export interface Supplement {
   id: number;
   name: string;
@@ -34,6 +35,5 @@ export interface Supplement {
   muted: boolean;
   type: string;
 }
-
 
 export type { SupplementItem, SupplementAlert, SupplementCardProps };

@@ -11,24 +11,7 @@ import InteractionsList from "../../components/IteractionList";
 import Toggle from "../../components/UI/Toggle";
 import Button from "../../components/UI/Button";
 import SuppDetails from "../../components/UI/SuppDetails";
-
-type FixedInteraction = { text: string; checked: boolean };
-type CustomInteraction = { text: string; checked: boolean };
-type InteractionsData = {
-  fixedInteractions: FixedInteraction[];
-  customInteractions: CustomInteraction[];
-};
-
-type FormData = {
-  supplementName?: string;
-  dosageForm: string | null;
-  brandName: string;
-  dose: { quantity: string; unit: string | null };
-  frequency: string | null;
-  timesOfDay: Record<string, Date[]>;
-  interactions: InteractionsData;
-  remindMe: boolean;
-};
+import { type FormData } from "../../types/FormData";
 
 function AddManually() {
   const navigate = useNavigate();
@@ -36,7 +19,7 @@ function AddManually() {
   
   // Check if we're in edit mode and have supplement data
   const editMode = location.state?.editMode || false;
-  const supplementData = location.state?.supplementData;
+  const supplementData = location.state?.supplementData as FormData | undefined;
 
   const [formData, setFormData] = useState<FormData>({
     supplementName: supplementData?.supplementName || "Vitamin D3",
@@ -88,11 +71,11 @@ function AddManually() {
   ];
 
   const handleTypeSelect = (type: string) => {
-    setFormData((prev) => ({ ...prev, dosageForm: type }));
+    setFormData((prev) => ({ ...prev, dosageForm: type as FormData['dosageForm'] }));
   };
 
   const handleFrequencySelect = (frequency: string) => {
-    setFormData((prev) => ({ ...prev, frequency }));
+    setFormData((prev) => ({ ...prev, frequency: frequency as FormData['frequency'] }));
   };
 
   const handleQuantityChange = (quantity: string) => {
@@ -152,7 +135,7 @@ function AddManually() {
     // Simulate API request
     setTimeout(() => {
       const payload = {
-        supplement: formData.supplementName || "Vitamin D3",
+        supplement: formData.supplementName,
         strength: "5000",
         dosageForm: formData.dosageForm,
         brandName: formData.brandName,
@@ -183,7 +166,7 @@ function AddManually() {
     }, 2000);
   };
 
-  const handleTimesOfDayChange = (timesOfDay: Record<string, Date[]>) => {
+  const handleTimesOfDayChange = (timesOfDay: FormData['timesOfDay']) => {
     setFormData((prev) => ({ ...prev, timesOfDay }));
   };
 
@@ -208,7 +191,7 @@ function AddManually() {
         <div>
           {/* Supp Details */}
           <SuppDetails 
-            name={formData.supplementName || "Vitamin D3"} 
+            name={formData.supplementName} 
             description="5000 (Strength)"
           />
 
