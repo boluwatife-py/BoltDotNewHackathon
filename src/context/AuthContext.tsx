@@ -7,15 +7,26 @@ interface User {
   name: string;
   age: number;
   avatarUrl?: string;
+  email_verified?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name: string, age: number, avatar?: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, name: string, age: number, avatar?: string) => Promise<{ 
+    success: boolean; 
+    error?: string; 
+    emailSent?: boolean; 
+    emailMessage?: string; 
+  }>;
   logout: () => void;
-  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ 
+    success: boolean; 
+    error?: string; 
+    emailSent?: boolean; 
+    reason?: string; 
+  }>;
   updateProfile: (data: { name?: string; age?: number; avatar?: string }) => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
 }
@@ -56,7 +67,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             email: data.user.email,
             name: data.user.name,
             age: data.user.age,
-            avatarUrl: data.user.avatar_url
+            avatarUrl: data.user.avatar_url,
+            email_verified: data.user.email_verified
           });
         }
       } catch (error) {
@@ -88,7 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: data.user.email,
         name: data.user.name,
         age: data.user.age,
-        avatarUrl: data.user.avatar_url
+        avatarUrl: data.user.avatar_url,
+        email_verified: data.user.email_verified
       });
       
       return { success: true };
@@ -100,7 +113,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string, age: number, avatar?: string): Promise<{ success: boolean; error?: string }> => {
+  const signup = async (
+    email: string, 
+    password: string, 
+    name: string, 
+    age: number, 
+    avatar?: string
+  ): Promise<{ 
+    success: boolean; 
+    error?: string; 
+    emailSent?: boolean; 
+    emailMessage?: string; 
+  }> => {
     try {
       setIsLoading(true);
       
@@ -121,10 +145,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: data.user.email,
         name: data.user.name,
         age: data.user.age,
-        avatarUrl: data.user.avatar_url
+        avatarUrl: data.user.avatar_url,
+        email_verified: data.user.email_verified
       });
       
-      return { success: true };
+      return { 
+        success: true, 
+        emailSent: data.email_sent,
+        emailMessage: data.email_message 
+      };
     } catch (error: any) {
       console.error('Signup error:', error);
       return { success: false, error: error.message || "Signup failed" };
@@ -139,15 +168,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
-  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+  const resetPassword = async (email: string): Promise<{ 
+    success: boolean; 
+    error?: string; 
+    emailSent?: boolean; 
+    reason?: string; 
+  }> => {
     try {
       setIsLoading(true);
       
-      await authAPI.forgotPassword(email);
-      return { success: true };
+      const { data } = await authAPI.forgotPassword(email);
+      
+      return { 
+        success: true, 
+        emailSent: data.email_sent,
+        reason: data.reason 
+      };
     } catch (error: any) {
       console.error('Password reset error:', error);
-      return { success: false, error: error.message || "Password reset failed" };
+      return { 
+        success: false, 
+        error: error.message || "Password reset failed",
+        emailSent: false 
+      };
     } finally {
       setIsLoading(false);
     }
@@ -170,7 +213,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: profileData.user.email,
         name: profileData.user.name,
         age: profileData.user.age,
-        avatarUrl: profileData.user.avatar_url
+        avatarUrl: profileData.user.avatar_url,
+        email_verified: profileData.user.email_verified
       });
       
       return { success: true };

@@ -12,6 +12,9 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     REFRESH: '/auth/refresh',
     FORGOT_PASSWORD: '/auth/forgot-password',
+    VERIFY_EMAIL: '/auth/verify-email',
+    RESEND_VERIFICATION: '/auth/resend-verification',
+    RESET_PASSWORD: '/auth/reset-password',
   },
   
   // User profile
@@ -34,6 +37,11 @@ export const API_ENDPOINTS = {
   
   // Health check
   HEALTH: '/health',
+  
+  // Email status
+  EMAIL: {
+    STATUS: '/email/status',
+  },
 } as const;
 
 // HTTP methods
@@ -57,7 +65,7 @@ export const getAuthHeaders = (token?: string) => {
   return headers;
 };
 
-// API request helper
+// API request helper with better error handling
 export const apiRequest = async (
   endpoint: string,
   options: {
@@ -103,7 +111,7 @@ export const apiRequest = async (
     }
 
     if (!response.ok) {
-      throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
     }
 
     return { data, response };
@@ -142,6 +150,24 @@ export const authAPI = {
     apiRequest(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
       method: HTTP_METHODS.POST,
       body: { email },
+    }),
+
+  verifyEmail: (email: string, token: string) =>
+    apiRequest(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
+      method: HTTP_METHODS.POST,
+      body: { email, token },
+    }),
+
+  resendVerification: (email: string) =>
+    apiRequest(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, {
+      method: HTTP_METHODS.POST,
+      body: { email },
+    }),
+
+  resetPassword: (email: string, token: string, new_password: string) =>
+    apiRequest(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      method: HTTP_METHODS.POST,
+      body: { email, token, new_password },
     }),
 };
 
@@ -210,3 +236,6 @@ export const chatAPI = {
 
 // Health check
 export const healthCheck = () => apiRequest(API_ENDPOINTS.HEALTH);
+
+// Email status check
+export const emailStatusCheck = () => apiRequest(API_ENDPOINTS.EMAIL.STATUS);
