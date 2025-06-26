@@ -103,15 +103,14 @@ async def signup(
     db: Database = Depends(get_database)
 ):
     """Create a new user account"""
+    auth_service = AuthService(db)
     try:
-        auth_service = AuthService(db)
-        
         # Check if user already exists
         existing_user = await auth_service.get_user_by_email(user_data.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+                detail=f"Email '{user_data.email}' is already registered."
             )
         
         # Create user
@@ -120,19 +119,23 @@ async def signup(
         # Generate tokens
         access_token = auth_service.create_access_token(user["id"])
         refresh_token = auth_service.create_refresh_token(user["id"])
-        
+
         return UserResponse(
             user=user,
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer"
         )
-        
+    except HTTPException as http_exc:
+        # Let FastAPI handle this as is
+        logger.warning(f"Signup failed with HTTPException: {http_exc.detail}")
+        raise http_exc
     except Exception as e:
-        logger.error(f"Signup error: {str(e)}")
+        # Capture the specific error detail
+        logger.error(f"Signup error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create account"
+            detail=str(e)  # <- send the error message to client
         )
 
 @app.post("/auth/login", response_model=UserResponse)
@@ -489,7 +492,7 @@ async def upload_image(
     """Upload an image file"""
     try:
         # Validate file type
-        if not file.content_type.startswith('image/'):
+        if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File must be an image"
