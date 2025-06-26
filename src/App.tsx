@@ -12,6 +12,10 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 import EmailVerification from "./pages/Auth/EmailVerification";
 import ResetPassword from "./pages/Auth/ResetPassword";
 
+// Legal Pages
+import Terms from "./pages/Legal/Terms";
+import Privacy from "./pages/Legal/Privacy";
+
 // Protected Pages
 import Home from "./pages/Home";
 import Scan from "./pages/Scan";
@@ -26,6 +30,8 @@ import Cvs from "./pages/Scan/Cvs";
 import Chatbot from "./pages/Chatbot";
 import Settings from "./pages/Settings";
 import SupplementList from "./pages/Settings/SupplementList";
+import AppInfo from "./pages/Settings/AppInfo";
+import DataPrivacy from "./pages/Settings/DataPrivacy";
 import Scheduler from "./pages/Scheduler";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +62,9 @@ function AppRoutes() {
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/verify-email" element={<EmailVerification />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
+        {/* Legal pages accessible without authentication */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/auth/login" replace />} />
       </Routes>
     );
@@ -127,6 +136,19 @@ function AppRoutes() {
                   <SupplementList />
                 </ProtectedRoute>
               } />
+              <Route path="/settings/app-info" element={
+                <ProtectedRoute>
+                  <AppInfo />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings/privacy-data" element={
+                <ProtectedRoute>
+                  <DataPrivacy />
+                </ProtectedRoute>
+              } />
+              {/* Legal pages accessible to authenticated users */}
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               {/* Redirect auth routes to home if already authenticated */}
               <Route path="/auth/*" element={<Navigate to="/" replace />} />
               {/* 404 Page for any unmatched routes */}

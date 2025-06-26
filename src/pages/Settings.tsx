@@ -46,13 +46,13 @@ const settingsItems: {
     text: "Display Preferences",
   },
   {
-    link: "",
+    link: "/settings/privacy-data",
     icon: Privacy,
     subtext: "Manage your privacy and data",
     text: "Privacy & Data Settings",
   },
   {
-    link: "",
+    link: "/settings/app-info",
     icon: AppInfo,
     subtext: "View app information",
     text: "App Info",
