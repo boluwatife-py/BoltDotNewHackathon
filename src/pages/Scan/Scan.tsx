@@ -4,6 +4,7 @@ import LoadingSpinner from "../../components/UI/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import { useRef, useState } from "react";
+import { API_BASE_URL } from "../../config/api";
 
 function ByScan() {
   const navigate = useNavigate();
@@ -23,11 +24,24 @@ function ByScan() {
     setIsScanning(true);
 
     try {
+      // Convert base64 to blob
+      const base64Data = shot.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', blob, 'supplement.jpg');
+
       // Call AI service to extract supplement data from image
-      const response = await fetch('/api/scan-supplement', {
+      const response = await fetch(`${API_BASE_URL}/upload/image`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: shot }),
+        body: formData,
       });
 
       const result = await response.json();
