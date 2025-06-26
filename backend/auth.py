@@ -14,6 +14,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import base64
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from database import Database, get_database
 
@@ -93,41 +96,42 @@ class AuthService:
         return self.verify_token(token, "refresh")
     
     async def create_user(self, user_data) -> Dict[str, Any]:
-        """Create a new user"""
         try:
-            # Hash the password
+            # Hash password
             hashed_password = self.hash_password(user_data.password)
-            
-            # Handle avatar if provided
-            avatar_url = None
-            if user_data.avatar:
-                # In a real implementation, you would upload the image to storage
-                # For now, we'll just store the base64 data (not recommended for production)
-                avatar_url = user_data.avatar
-            
-            # Prepare user data for database
-            db_user_data = {
+
+            # Sign up in Supabase auth
+            auth_response = self.db.supabase.auth.sign_up({
                 "email": user_data.email,
-                "password": user_data.password,  # This will be handled by Supabase auth
+                "password": user_data.password  # plain password for auth
+            })
+
+            if not auth_response.user:
+                raise Exception("Supabase auth signup failed")
+
+            # Insert user data in users table
+            db_user_data = {
+                "id": auth_response.user.id,
+                "email": user_data.email,
+                "password_hash": hashed_password,
                 "name": user_data.name,
                 "age": user_data.age,
-                "avatar_url": avatar_url
+                "avatar_url": user_data.avatar,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
             }
-            
-            # Create user in database
+
             user = await self.db.create_user(db_user_data)
-            
-            # Remove sensitive data from response
             user.pop("password_hash", None)
-            
             return user
-            
+
         except Exception as e:
             logger.error(f"Create user error: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user"
+                detail=str(e)
             )
+
     
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate a user with email and password"""
