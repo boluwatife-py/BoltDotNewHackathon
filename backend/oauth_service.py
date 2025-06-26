@@ -33,7 +33,7 @@ class OAuthService:
         # Google OAuth configuration
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", f"{os.getenv('BACKEND_URL', 'http://localhost:8000')}/auth/google/callback")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
         
         # Apple OAuth configuration
         self.apple_client_id = os.getenv("APPLE_CLIENT_ID")
@@ -133,6 +133,7 @@ class OAuthService:
         }
         
         auth_url = f"{self.google_auth_url}?{urlencode(params)}"
+        print(auth_url)
         return auth_url, state
     
     def get_apple_auth_url(self) -> tuple[str, str]:
@@ -208,7 +209,7 @@ class OAuthService:
             logger.error(f"Google OAuth callback error: {str(e)}")
             raise
     
-    async def handle_apple_callback(self, code: str, state: str, id_token: str = None) -> Dict[str, Any]:
+    async def handle_apple_callback(self, code: str, state: str, id_token: Optional[str] = None) -> Dict[str, Any]:
         """Handle Apple OAuth callback"""
         try:
             # Verify state
@@ -234,7 +235,7 @@ class OAuthService:
                 raise ValueError("No ID token received from Apple")
             
             # Decode JWT without verification for now (in production, verify signature)
-            user_info = jwt.decode(id_token, options={"verify_signature": False})
+            user_info = jwt.decode(id_token, None)
             
             # Create or get user
             user_data = {
