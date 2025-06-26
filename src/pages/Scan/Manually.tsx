@@ -10,7 +10,6 @@ import TimeOfDayPicker from "../../components/UI/TodPicker";
 import InteractionsList from "../../components/IteractionList";
 import Toggle from "../../components/UI/Toggle";
 import Button from "../../components/UI/Button";
-import SuppDetails from "../../components/UI/SuppDetails";
 import { supplementsAPI } from "../../config/api";
 import { type FormData } from "../../types/FormData";
 
@@ -21,13 +20,15 @@ function AddManually() {
   // Check if we're in edit mode and have supplement data
   const editMode = location.state?.editMode || false;
   const supplementData = location.state?.supplementData as FormData | undefined;
+  const scannedData = location.state?.scannedData;
 
   const [formData, setFormData] = useState<FormData>({
-    supplementName: supplementData?.supplementName || "Vitamin D3",
-    dosageForm: supplementData?.dosageForm || null,
-    brandName: supplementData?.brandName || "",
-    dose: supplementData?.dose || { quantity: "", unit: null },
-    frequency: supplementData?.frequency || null,
+    supplementName: supplementData?.supplementName || scannedData?.name || "",
+    supplementStrength: supplementData?.supplementStrength || scannedData?.strength || "",
+    dosageForm: supplementData?.dosageForm || scannedData?.dosageForm || null,
+    brandName: supplementData?.brandName || scannedData?.brand || "",
+    dose: supplementData?.dose || scannedData?.dose || { quantity: "", unit: null },
+    frequency: supplementData?.frequency || scannedData?.frequency || null,
     timesOfDay: supplementData?.timesOfDay || {
       Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
       Afternoon: [],
@@ -38,6 +39,7 @@ function AddManually() {
   });
 
   const [errors, setErrors] = useState({
+    supplementName: "",
     dosageForm: "",
     brandName: "",
     dose: "",
@@ -96,6 +98,7 @@ function AddManually() {
 
   const validateForm = () => {
     const newErrors = {
+      supplementName: "",
       dosageForm: "",
       brandName: "",
       dose: "",
@@ -104,6 +107,10 @@ function AddManually() {
     };
     let isValid = true;
 
+    if (!formData.supplementName.trim()) {
+      newErrors.supplementName = "Please enter a supplement name.";
+      isValid = false;
+    }
     if (!formData.dosageForm) {
       newErrors.dosageForm = "Please select a dosage form.";
       isValid = false;
@@ -214,11 +221,28 @@ function AddManually() {
       />
       <div className="flex-1 flex flex-col justify-between">
         <div>
-          {/* Supp Details */}
-          <SuppDetails 
-            name={formData.supplementName} 
-            description="5000 (Strength)"
-          />
+          {/* Supplement Image and Editable Name/Strength */}
+          <div className="px-[1rem] py-[0.75rem] flex items-center self-stretch gap-[0.75rem]">
+            <div className="w-[4.6875rem] h-[4.6875rem] rounded-[0.5rem] overflow-hidden bg-orange-200 flex items-center justify-center">
+              <span className="text-orange-600 text-2xl">💊</span>
+            </div>
+            <div className="flex flex-col items-start justify-center flex-1">
+              <InputField
+                placeholder="Supplement Name"
+                value={formData.supplementName}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplementName: e.target.value }))}
+                state={errors.supplementName ? "error" : "default"}
+                className="text-[1.25rem] font-medium mb-2"
+              />
+              <InputField
+                placeholder="Supplement Strength (e.g., 5000 IU)"
+                value={formData.supplementStrength}
+                onChange={(e) => setFormData(prev => ({ ...prev, supplementStrength: e.target.value }))}
+                state="default"
+                className="text-[0.75rem] text-[var(--text-placeholder)]"
+              />
+            </div>
+          </div>
 
           <form action="" onSubmit={(e) => e.preventDefault()}>
             {/* Dosage Form */}

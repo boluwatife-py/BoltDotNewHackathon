@@ -44,6 +44,7 @@ export interface TimesOfDayData {
 
 export interface FormData {
   supplementName: string;
+  supplementStrength: string; // Added this field
   dosageForm: DosageFormType | null;
   brandName: string;
   dose: DoseData;

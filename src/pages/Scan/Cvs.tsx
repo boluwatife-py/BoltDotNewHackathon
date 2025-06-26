@@ -36,48 +36,124 @@ export default function Cvs() {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [shakeButton, setShakeButton] = useState(false); 
+  const [shakeButton, setShakeButton] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        setUploadError("Please select a CSV file");
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError("File size must be less than 10MB");
+        return;
+      }
+      
+      setSelectedFile(file);
+      setUploadError(null);
     }
   };
 
-  const handleUpload = () => {
+  const parseCSVData = (csvText: string) => {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const supplements = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+      if (values.length < headers.length) continue;
+      
+      const row: any = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index]?.trim().replace(/"/g, '');
+      });
+      
+      // Try to identify supplement-related products
+      const productName = row['product name'] || row['title'] || row['item'] || '';
+      const category = row['category'] || row['department'] || '';
+      
+      // Simple heuristic to identify supplements
+      const supplementKeywords = [
+        'vitamin', 'supplement', 'mineral', 'omega', 'probiotic', 
+        'protein', 'calcium', 'magnesium', 'zinc', 'iron', 'b12',
+        'multivitamin', 'fish oil', 'coq10', 'turmeric', 'ginseng'
+      ];
+      
+      const isLikelySupplement = supplementKeywords.some(keyword => 
+        productName.toLowerCase().includes(keyword) || 
+        category.toLowerCase().includes(keyword)
+      );
+      
+      if (isLikelySupplement && productName) {
+        // Extract basic information
+        const supplement = {
+          name: productName,
+          brand: row['brand'] || 'Unknown',
+          quantity: row['quantity'] || '1',
+          price: row['price'] || row['cost'] || '',
+          orderDate: row['order date'] || row['date'] || '',
+        };
+        
+        supplements.push(supplement);
+      }
+    }
+    
+    return supplements;
+  };
+
+  const handleUpload = async () => {
     if (!selectedFile || isUploading) {
       if (!selectedFile) {
-        setShakeButton(true); // trigger shake
+        setShakeButton(true);
         setTimeout(() => setShakeButton(false), 500);
       }
       return;
     }
 
     setIsUploading(true);
-    const reader = new FileReader();
+    setUploadError(null);
 
-    reader.onload = async () => {
-      try {
-        await fetch("/api/upload-csv", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: reader.result }),
-        });
-      } catch (err) {
-        console.error("Upload failed:", err);
+    try {
+      const csvText = await selectedFile.text();
+      const supplements = parseCSVData(csvText);
+      
+      if (supplements.length === 0) {
+        setUploadError("No supplements found in the CSV file. Please check the file format.");
+        setIsUploading(false);
+        return;
       }
 
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
-    };
-    reader.readAsText(selectedFile);
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Navigate to a results page or back to home with success message
+      navigate("/", { 
+        state: { 
+          message: `Successfully imported ${supplements.length} supplements from CSV`,
+          importedSupplements: supplements
+        }
+      });
+      
+    } catch (error) {
+      console.error("CSV processing error:", error);
+      setUploadError("Failed to process CSV file. Please check the file format and try again.");
+      setIsUploading(false);
+    }
   };
 
   if (isUploading) {
     return (
       <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col items-center justify-center">
         <LoadingSpinner size="lg" text="Processing your CSV file..." />
+        <p className="text-[var(--text-secondary)] text-sm mt-4 text-center max-w-sm">
+          We're analyzing your purchase history and extracting supplement information...
+        </p>
       </div>
     );
   }
@@ -104,11 +180,17 @@ export default function Cvs() {
               Upload the CSV to SafeDoser
               {selectedFile && (
                 <span className="text-[0.7rem] text-[var(--text-light)] mt-[0.25rem]">
-                  {selectedFile.name}
+                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                 </span>
               )}
             </span>
           </div>
+
+          {uploadError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{uploadError}</p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-[0.5rem] items-center">
             <input
@@ -120,16 +202,24 @@ export default function Cvs() {
             />
             <label
               htmlFor="csv-upload"
-              className={`px-[1rem] py-[0.75rem] rounded-[0.75rem] font-bold text-[0.875rem] bg-[#CCC] text-white cursor-pointer ${shakeButton ? "animate-shake" : ""}`}
+              className={`px-[1rem] py-[0.75rem] rounded-[0.75rem] font-bold text-[0.875rem] bg-[#CCC] text-white cursor-pointer transition-all ${
+                shakeButton ? "animate-shake" : ""
+              } ${selectedFile ? "bg-[var(--primary-color)]" : ""}`}
             >
               {selectedFile ? "Choose Another CSV" : "Upload CSV File"}
             </label>
+            
+            {selectedFile && (
+              <p className="text-xs text-[var(--text-secondary)] text-center">
+                We'll automatically detect supplements from your purchase history
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       <Button
-        text="Continue"
+        text={selectedFile ? "Process CSV File" : "Continue"}
         loading={isUploading}
         handleClick={handleUpload}
       />

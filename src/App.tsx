@@ -21,6 +21,7 @@ import BottomNavBar from "./components/BottomNav/BottomNav";
 import ByScan from "./pages/Scan/Scan";
 import Layout from "./components/Layout";
 import ScanResult from "./pages/Scan/ScanResults";
+import ScanFailed from "./pages/Scan/ScanFailed";
 import Cvs from "./pages/Scan/Cvs";
 import Chatbot from "./pages/Chatbot";
 import Settings from "./pages/Settings";
@@ -94,6 +95,11 @@ function AppRoutes() {
               <Route path="/scan/result" element={
                 <ProtectedRoute>
                   <ScanResult />
+                </ProtectedRoute>
+              } />
+              <Route path="/scan/scan-failed" element={
+                <ProtectedRoute>
+                  <ScanFailed />
                 </ProtectedRoute>
               } />
               <Route path="/scan/import" element={

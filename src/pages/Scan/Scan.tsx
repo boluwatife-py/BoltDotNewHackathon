@@ -9,6 +9,7 @@ function ByScan() {
   const navigate = useNavigate();
   const webcamRef = useRef<Webcam>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanAttempts, setScanAttempts] = useState(0);
 
   const videoConstraints = {
     facingMode: "environment" as const,
@@ -22,15 +23,50 @@ function ByScan() {
     setIsScanning(true);
 
     try {
-      await fetch("/otc/receive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Call AI service to extract supplement data from image
+      const response = await fetch('/api/scan-supplement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: shot }),
       });
 
-      setTimeout(() => navigate("/scan/result"), 2000);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // AI successfully extracted data, navigate to manual entry with pre-filled data
+        navigate("/scan/manual", {
+          state: {
+            scannedData: {
+              name: result.data.name || "",
+              strength: result.data.strength || "",
+              brand: result.data.brand || "",
+              dosageForm: result.data.dosageForm || null,
+              dose: result.data.dose || { quantity: "", unit: null },
+              frequency: result.data.frequency || null,
+            }
+          }
+        });
+      } else {
+        // AI failed to extract data, show scan failed page
+        setScanAttempts(prev => prev + 1);
+        navigate("/scan/scan-failed", {
+          state: {
+            image: shot,
+            attempts: scanAttempts + 1
+          }
+        });
+      }
     } catch (error) {
       console.error("Scan failed:", error);
+      // On error, show scan failed page
+      setScanAttempts(prev => prev + 1);
+      navigate("/scan/scan-failed", {
+        state: {
+          image: shot,
+          attempts: scanAttempts + 1
+        }
+      });
+    } finally {
       setIsScanning(false);
     }
   };
