@@ -37,42 +37,17 @@ class Database:
         """Close database connections"""
         pass
     
-    # User operations
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new user"""
         try:
-            # Use Supabase auth for user creation
-            auth_response = self.supabase.auth.sign_up({
-                "email": user_data["email"],
-                "password": user_data["password"]
-            })
-            
-            if auth_response.user:
-                # Insert additional user data
-                user_record = {
-                    "id": auth_response.user.id,
-                    "email": user_data["email"],
-                    "name": user_data["name"],
-                    "age": user_data["age"],
-                    "avatar_url": user_data.get("avatar_url"),
-                    "created_at": datetime.utcnow().isoformat(),
-                    "updated_at": datetime.utcnow().isoformat()
-                }
-                
-                # Insert into users table
-                result = self.supabase.table("users").insert(user_record).execute()
-                
-                if result.data:
-                    return result.data[0]
-                else:
-                    raise Exception("Failed to create user record")
-            else:
-                raise Exception("Failed to create user authentication")
-                
+            result = self.supabase.table("users").insert(user_data).execute()
+            if result.data:
+                return result.data[0]
+            raise Exception("Failed to create user record")
         except Exception as e:
             logger.error(f"Create user error: {str(e)}")
             raise
-    
+
+
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
         try:
