@@ -167,26 +167,6 @@ const Signup: React.FC = () => {
   if (showEmailVerification) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Status Bar */}
-        <div className="flex justify-between items-center px-6 py-3 bg-white">
-          <span className="text-black font-medium">9:41 AM</span>
-          <div className="flex items-center gap-1">
-            <div className="flex gap-1">
-              <div className="w-1 h-3 bg-black rounded-full"></div>
-              <div className="w-1 h-3 bg-black rounded-full"></div>
-              <div className="w-1 h-3 bg-black rounded-full"></div>
-              <div className="w-1 h-3 bg-gray-300 rounded-full"></div>
-            </div>
-            <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none">
-              <path d="M3 7H21L19 21H5L3 7Z" stroke="currentColor" strokeWidth="2"/>
-              <path d="M3 7L1 3H7L9 7" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-            <div className="w-6 h-3 border border-black rounded-sm">
-              <div className="w-4 h-2 bg-black rounded-sm m-0.5"></div>
-            </div>
-          </div>
-        </div>
-
         {/* Email Verification Notice */}
         <div className="flex-1 flex flex-col justify-center px-6 py-8">
           <div className="max-w-sm mx-auto w-full text-center">
