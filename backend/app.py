@@ -76,17 +76,11 @@ async def lifespan(app: FastAPI):
     
     # Log OAuth service status
     oauth_google_configured = oauth_service.is_configured("google")
-    oauth_apple_configured = oauth_service.is_configured("apple")
     
     if oauth_google_configured:
         logger.info("Google OAuth configured successfully")
     else:
         logger.warning("Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET")
-    
-    if oauth_apple_configured:
-        logger.info("Apple OAuth configured successfully")
-    else:
-        logger.warning("Apple OAuth not configured. Set APPLE_CLIENT_ID and APPLE_CLIENT_SECRET")
     
     logger.info("SafeDoser Backend API started successfully!")
     
@@ -183,33 +177,6 @@ async def google_oauth(request: Request):
             detail="OAuth initialization failed"
         )
 
-@app.get("/auth/apple")
-async def apple_oauth(request: Request):
-    """Initiate Apple OAuth flow"""
-    try:
-        oauth_service = app.state.oauth_service
-        
-        if not oauth_service.is_configured("apple"):
-            raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Apple OAuth not configured. Please set APPLE_CLIENT_ID and APPLE_CLIENT_SECRET environment variables."
-            )
-        
-        # Generate OAuth URL
-        auth_url, state = oauth_service.get_apple_auth_url()
-        
-        # Redirect to Apple OAuth
-        return RedirectResponse(url=auth_url, status_code=302)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Apple OAuth error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OAuth initialization failed"
-        )
-
 @app.get("/auth/google/callback")
 async def google_oauth_callback(code: str, state: str, error: Optional[str] = None):
     """Handle Google OAuth callback"""
@@ -243,51 +210,6 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
         
     except Exception as e:
         logger.error(f"Google OAuth callback error: {str(e)}")
-        oauth_service = app.state.oauth_service
-        redirect_url = oauth_service.get_frontend_redirect_url(
-            success=False, 
-            error="oauth_callback_failed", 
-            message="Authentication failed. Please try again."
-        )
-        return RedirectResponse(url=redirect_url, status_code=302)
-
-@app.post("/auth/apple/callback")
-async def apple_oauth_callback(
-    code: str = Form(...), 
-    state: str = Form(...), 
-    id_token: str = Form(None),
-    error: str = Form(None)
-):
-    """Handle Apple OAuth callback"""
-    try:
-        oauth_service = app.state.oauth_service
-        
-        if error:
-            logger.warning(f"Apple OAuth error: {error}")
-            redirect_url = oauth_service.get_frontend_redirect_url(
-                success=False, 
-                error="oauth_error", 
-                message="Apple authentication was cancelled or failed"
-            )
-            return RedirectResponse(url=redirect_url, status_code=302)
-        
-        if not code or not state:
-            redirect_url = oauth_service.get_frontend_redirect_url(
-                success=False, 
-                error="missing_parameters", 
-                message="Missing required OAuth parameters"
-            )
-            return RedirectResponse(url=redirect_url, status_code=302)
-        
-        # Handle OAuth callback
-        result = await oauth_service.handle_apple_callback(code, state, id_token)
-        
-        # Create success redirect with tokens
-        redirect_url = f"{oauth_service.frontend_url}/?access_token={result['access_token']}&refresh_token={result['refresh_token']}"
-        return RedirectResponse(url=redirect_url, status_code=302)
-        
-    except Exception as e:
-        logger.error(f"Apple OAuth callback error: {str(e)}")
         oauth_service = app.state.oauth_service
         redirect_url = oauth_service.get_frontend_redirect_url(
             success=False, 

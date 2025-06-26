@@ -1,6 +1,6 @@
 """
 OAuth service for SafeDoser backend
-Handles Google and Apple OAuth authentication flows
+Handles Google OAuth authentication flows
 """
 
 import os
@@ -24,7 +24,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class OAuthService:
-    """OAuth service for handling Google and Apple authentication"""
+    """OAuth service for handling Google authentication"""
     
     def __init__(self, db: Database):
         self.db = db
@@ -35,11 +35,6 @@ class OAuthService:
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
         
-        # Apple OAuth configuration
-        self.apple_client_id = os.getenv("APPLE_CLIENT_ID")
-        self.apple_client_secret = os.getenv("APPLE_CLIENT_SECRET")
-        self.apple_redirect_uri = os.getenv("APPLE_REDIRECT_URI", f"{os.getenv('BACKEND_URL', 'http://localhost:8000')}/auth/apple/callback")
-        
         # Frontend URL for redirects
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         
@@ -48,19 +43,13 @@ class OAuthService:
         self.google_token_url = "https://oauth2.googleapis.com/token"
         self.google_userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
         
-        self.apple_auth_url = "https://appleid.apple.com/auth/authorize"
-        self.apple_token_url = "https://appleid.apple.com/auth/token"
-        
         # OAuth scopes
         self.google_scopes = ["openid", "email", "profile"]
-        self.apple_scopes = ["name", "email"]
     
     def is_configured(self, provider: str) -> bool:
         """Check if OAuth provider is properly configured"""
         if provider == "google":
             return bool(self.google_client_id and self.google_client_secret)
-        elif provider == "apple":
-            return bool(self.apple_client_id and self.apple_client_secret)
         return False
     
     def generate_state(self) -> str:
@@ -136,26 +125,6 @@ class OAuthService:
         print(auth_url)
         return auth_url, state
     
-    def get_apple_auth_url(self) -> tuple[str, str]:
-        """Generate Apple OAuth authorization URL"""
-        if not self.is_configured("apple"):
-            raise ValueError("Apple OAuth not configured")
-        
-        state = self.generate_state()
-        self.store_oauth_state(state, "apple")
-        
-        params = {
-            "client_id": self.apple_client_id,
-            "redirect_uri": self.apple_redirect_uri,
-            "scope": " ".join(self.apple_scopes),
-            "response_type": "code",
-            "state": state,
-            "response_mode": "form_post"
-        }
-        
-        auth_url = f"{self.apple_auth_url}?{urlencode(params)}"
-        return auth_url, state
-    
     async def handle_google_callback(self, code: str, state: str) -> Dict[str, Any]:
         """Handle Google OAuth callback"""
         try:
@@ -207,60 +176,6 @@ class OAuthService:
             
         except Exception as e:
             logger.error(f"Google OAuth callback error: {str(e)}")
-            raise
-    
-    async def handle_apple_callback(self, code: str, state: str, id_token: Optional[str] = None) -> Dict[str, Any]:
-        """Handle Apple OAuth callback"""
-        try:
-            # Verify state
-            if not self.verify_oauth_state(state, "apple"):
-                raise ValueError("Invalid or expired state parameter")
-            
-            # Exchange code for tokens
-            token_data = {
-                "client_id": self.apple_client_id,
-                "client_secret": self.apple_client_secret,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": self.apple_redirect_uri
-            }
-            
-            token_response = requests.post(self.apple_token_url, data=token_data)
-            token_response.raise_for_status()
-            tokens = token_response.json()
-            
-            # Decode ID token to get user info
-            id_token = tokens.get("id_token") or id_token
-            if not id_token:
-                raise ValueError("No ID token received from Apple")
-            
-            # Decode JWT without verification for now (in production, verify signature)
-            user_info = jwt.decode(id_token, None)
-            
-            # Create or get user
-            user_data = {
-                "email": user_info["email"],
-                "name": user_info.get("name", user_info["email"].split("@")[0]),
-                "email_verified": user_info.get("email_verified", True),
-                "oauth_provider": "apple",
-                "oauth_id": user_info["sub"]
-            }
-            
-            user = await self.create_or_get_oauth_user(user_data)
-            
-            # Generate JWT tokens
-            access_token = self.auth_service.create_access_token(user["id"])
-            refresh_token = self.auth_service.create_refresh_token(user["id"])
-            
-            return {
-                "user": user,
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "token_type": "bearer"
-            }
-            
-        except Exception as e:
-            logger.error(f"Apple OAuth callback error: {str(e)}")
             raise
     
     async def create_or_get_oauth_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
