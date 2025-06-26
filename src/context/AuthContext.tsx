@@ -13,6 +13,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  connectionError: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, name: string, age: number, avatar?: string) => Promise<{ 
     success: boolean; 
@@ -29,17 +30,20 @@ interface AuthContextType {
   }>;
   updateProfile: (data: { name?: string; age?: number; avatar?: string }) => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
+  retryConnection: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  connectionError: false,
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
   logout: () => {},
   resetPassword: async () => ({ success: false }),
   updateProfile: async () => ({ success: false }),
   isAuthenticated: false,
+  retryConnection: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -51,42 +55,63 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState(false);
 
   // Check for existing session on app load
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
+  const checkAuthStatus = async () => {
+    try {
+      setConnectionError(false);
+      const token = localStorage.getItem('access_token');
+      
+      if (token) {
+        // Validate token by fetching user profile
+        const { data } = await userAPI.getProfile(token);
         
-        if (token) {
-          // Validate token by fetching user profile
-          const { data } = await userAPI.getProfile(token);
-          
-          setUser({
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name,
-            age: data.user.age,
-            avatarUrl: data.user.avatar_url,
-            email_verified: data.user.email_verified
-          });
-        }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        // Token is invalid, clear it
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-      } finally {
-        setIsLoading(false);
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          age: data.user.age,
+          avatarUrl: data.user.avatar_url,
+          email_verified: data.user.email_verified
+        });
       }
-    };
+    } catch (error: any) {
+      console.error('Error checking auth status:', error);
+      
+      // Check if it's a network/connection error
+      if (error.message === 'Failed to fetch' || 
+          error.message.includes('fetch') || 
+          error.message.includes('network') ||
+          error.message.includes('ECONNREFUSED')) {
+        setConnectionError(true);
+        console.warn('Backend connection failed. App will work in offline mode for existing sessions.');
+        // Don't clear tokens on connection errors - user might have valid session
+        return;
+      }
+      
+      // Token is invalid, clear it
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuthStatus();
   }, []);
+
+  const retryConnection = async () => {
+    setIsLoading(true);
+    await checkAuthStatus();
+  };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
+      setConnectionError(false);
       
       const { data } = await authAPI.login({ email, password });
       
@@ -107,6 +132,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: true };
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      if (error.message === 'Failed to fetch' || 
+          error.message.includes('fetch') || 
+          error.message.includes('network')) {
+        setConnectionError(true);
+        return { success: false, error: "Unable to connect to server. Please check your internet connection and try again." };
+      }
+      
       return { success: false, error: error.message || "Login failed" };
     } finally {
       setIsLoading(false);
@@ -127,6 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }> => {
     try {
       setIsLoading(true);
+      setConnectionError(false);
       
       const userData: any = { email, password, name, age };
       if (avatar) {
@@ -156,6 +190,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     } catch (error: any) {
       console.error('Signup error:', error);
+      
+      if (error.message === 'Failed to fetch' || 
+          error.message.includes('fetch') || 
+          error.message.includes('network')) {
+        setConnectionError(true);
+        return { success: false, error: "Unable to connect to server. Please check your internet connection and try again." };
+      }
+      
       return { success: false, error: error.message || "Signup failed" };
     } finally {
       setIsLoading(false);
@@ -166,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     setUser(null);
+    setConnectionError(false);
   };
 
   const resetPassword = async (email: string): Promise<{ 
@@ -176,6 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }> => {
     try {
       setIsLoading(true);
+      setConnectionError(false);
       
       const { data } = await authAPI.forgotPassword(email);
       
@@ -186,6 +230,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     } catch (error: any) {
       console.error('Password reset error:', error);
+      
+      if (error.message === 'Failed to fetch' || 
+          error.message.includes('fetch') || 
+          error.message.includes('network')) {
+        setConnectionError(true);
+        return { 
+          success: false, 
+          error: "Unable to connect to server. Please check your internet connection and try again.",
+          emailSent: false 
+        };
+      }
+      
       return { 
         success: false, 
         error: error.message || "Password reset failed",
@@ -198,6 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateProfile = async (data: { name?: string; age?: number; avatar?: string }): Promise<{ success: boolean; error?: string }> => {
     try {
+      setConnectionError(false);
       const token = localStorage.getItem('access_token');
       
       if (!token) {
@@ -220,6 +277,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: true };
     } catch (error: any) {
       console.error('Profile update error:', error);
+      
+      if (error.message === 'Failed to fetch' || 
+          error.message.includes('fetch') || 
+          error.message.includes('network')) {
+        setConnectionError(true);
+        return { success: false, error: "Unable to connect to server. Please check your internet connection and try again." };
+      }
+      
       return { success: false, error: error.message || "Profile update failed" };
     }
   };
@@ -227,12 +292,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     isLoading,
+    connectionError,
     login,
     signup,
     logout,
     resetPassword,
     updateProfile,
     isAuthenticated: !!user,
+    retryConnection,
   };
 
   return (
