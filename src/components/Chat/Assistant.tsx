@@ -2,6 +2,44 @@ import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, RefreshCcw, LogIn } from "lucide-react";
 
+// Function to format text with bold and line breaks
+const formatText = (text: string): ReactNode => {
+  // Split by double line breaks first to handle paragraphs
+  const paragraphs = text.split('\n\n');
+  
+  return paragraphs.map((paragraph, paragraphIndex) => {
+    // Split by single line breaks within paragraphs
+    const lines = paragraph.split('\n');
+    
+    const formattedLines = lines.map((line, lineIndex) => {
+      // Split by **text** pattern for bold formatting
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      
+      const formattedParts = parts.map((part, partIndex) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          // Remove the ** and make it bold
+          const boldText = part.slice(2, -2);
+          return <strong key={partIndex}>{boldText}</strong>;
+        }
+        return part;
+      });
+      
+      return (
+        <span key={lineIndex}>
+          {formattedParts}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      );
+    });
+    
+    return (
+      <div key={paragraphIndex} style={{ marginBottom: paragraphIndex < paragraphs.length - 1 ? '1rem' : '0' }}>
+        {formattedLines}
+      </div>
+    );
+  });
+};
+
 export default function Assistant({
   text,
   children,
@@ -34,7 +72,11 @@ export default function Assistant({
             </div>
           )}
 
-          {!isLoading && !errorType && text}
+          {!isLoading && !errorType && text && (
+            <div className="whitespace-pre-wrap">
+              {formatText(text)}
+            </div>
+          )}
 
           {errorType === "network" && (
             <div className="flex flex-col gap-2 text-red-600">
