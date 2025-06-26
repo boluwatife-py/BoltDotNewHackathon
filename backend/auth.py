@@ -70,8 +70,8 @@ class AuthService:
         """Verify a JWT token and return user ID"""
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            user_id: str = payload.get("sub")
-            token_type_claim: str = payload.get("type")
+            user_id: Optional[str] = payload.get("sub")
+            token_type_claim: Optional[str] = payload.get("type")
             
             if user_id is None or token_type_claim != token_type:
                 raise HTTPException(
