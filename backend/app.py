@@ -21,6 +21,8 @@ import uvicorn
 from database import Database, get_database
 from auth import AuthService, get_current_user
 from ai_service import AIService
+from email_service import EmailService
+from token_service import TokenService
 from models import (
     UserCreate, UserLogin, UserResponse, UserUpdate,
     SupplementCreate, SupplementUpdate, SupplementResponse,
@@ -45,12 +47,16 @@ async def lifespan(app: FastAPI):
     db = Database()
     await db.initialize()
     
-    # Initialize AI service
+    # Initialize services
     ai_service = AIService()
+    email_service = EmailService()
+    token_service = TokenService(db)
     
     # Store in app state
     app.state.db = db
     app.state.ai_service = ai_service
+    app.state.email_service = email_service
+    app.state.token_service = token_service
     
     logger.info("SafeDoser Backend API started successfully!")
     
@@ -96,14 +102,30 @@ async def health_check():
         supabase_configured=bool(os.getenv("SUPABASE_URL"))
     )
 
+# Email verification models
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    token: str
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    token: str
+    new_password: str
+
 # Authentication endpoints
 @app.post("/auth/signup", response_model=UserResponse)
 async def signup(
     user_data: UserCreate,
     db: Database = Depends(get_database)
 ):
-    """Create a new user account"""
+    """Create a new user account with email verification"""
     auth_service = AuthService(db)
+    email_service = app.state.email_service
+    token_service = app.state.token_service
+    
     try:
         # Check if user already exists
         existing_user = await auth_service.get_user_by_email(user_data.email)
@@ -113,10 +135,26 @@ async def signup(
                 detail=f"Email '{user_data.email}' is already registered."
             )
         
-        # Create user
+        # Create user (will be unverified initially)
         user = await auth_service.create_user(user_data)
         
-        # Generate tokens
+        # Generate verification token
+        verification_token = token_service.generate_token(user_data.email, "email_verification")
+        
+        # Store verification token
+        await token_service.store_verification_token(user_data.email, verification_token)
+        
+        # Send verification email
+        email_sent = await email_service.send_verification_email(
+            user_data.email, 
+            user_data.name, 
+            verification_token
+        )
+        
+        if not email_sent:
+            logger.warning(f"Failed to send verification email to {user_data.email}")
+        
+        # Generate tokens (user can use app but some features may be limited)
         access_token = auth_service.create_access_token(user["id"])
         refresh_token = auth_service.create_refresh_token(user["id"])
 
@@ -127,15 +165,122 @@ async def signup(
             token_type="bearer"
         )
     except HTTPException as http_exc:
-        # Let FastAPI handle this as is
         logger.warning(f"Signup failed with HTTPException: {http_exc.detail}")
         raise http_exc
     except Exception as e:
-        # Capture the specific error detail
         logger.error(f"Signup error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)  # <- send the error message to client
+            detail=str(e)
+        )
+
+@app.post("/auth/verify-email")
+async def verify_email(
+    verification_data: EmailVerificationRequest,
+    db: Database = Depends(get_database)
+):
+    """Verify user email address"""
+    try:
+        token_service = app.state.token_service
+        
+        # Verify the token
+        is_valid = await token_service.verify_token(
+            verification_data.email, 
+            verification_data.token, 
+            "email_verification"
+        )
+        
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification token"
+            )
+        
+        # Update user as verified
+        auth_service = AuthService(db)
+        user = await auth_service.get_user_by_email(verification_data.email)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Mark user as verified
+        await auth_service.update_user(user["id"], {"email_verified": True})
+        
+        return {"message": "Email verified successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Email verification failed"
+        )
+
+@app.post("/auth/resend-verification")
+async def resend_verification_email(
+    email_data: dict,
+    db: Database = Depends(get_database)
+):
+    """Resend verification email"""
+    try:
+        email = email_data.get("email")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is required"
+            )
+        
+        auth_service = AuthService(db)
+        email_service = app.state.email_service
+        token_service = app.state.token_service
+        
+        # Check if user exists
+        user = await auth_service.get_user_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Check if already verified
+        if user.get("email_verified", False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already verified"
+            )
+        
+        # Generate new verification token
+        verification_token = token_service.generate_token(email, "email_verification")
+        
+        # Store verification token
+        await token_service.store_verification_token(email, verification_token)
+        
+        # Send verification email
+        email_sent = await email_service.send_verification_email(
+            email, 
+            user["name"], 
+            verification_token
+        )
+        
+        if email_sent:
+            return {"message": "Verification email sent successfully"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Resend verification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to resend verification email"
         )
 
 @app.post("/auth/login", response_model=UserResponse)
@@ -179,6 +324,95 @@ async def login(
             detail="Login failed"
         )
 
+@app.post("/auth/forgot-password")
+async def forgot_password(
+    request_data: PasswordResetRequest,
+    db: Database = Depends(get_database)
+):
+    """Send password reset email"""
+    try:
+        auth_service = AuthService(db)
+        email_service = app.state.email_service
+        token_service = app.state.token_service
+        
+        # Check if user exists
+        user = await auth_service.get_user_by_email(request_data.email)
+        if not user:
+            # Don't reveal if email exists or not for security
+            return {"message": "If the email exists in our system, a reset link has been sent"}
+        
+        # Generate reset token
+        reset_token = token_service.generate_token(request_data.email, "password_reset")
+        
+        # Store reset token
+        await token_service.store_reset_token(request_data.email, reset_token)
+        
+        # Send reset email
+        email_sent = await email_service.send_password_reset_email(
+            request_data.email,
+            user["name"],
+            reset_token
+        )
+        
+        if email_sent:
+            logger.info(f"Password reset email sent to {request_data.email}")
+        else:
+            logger.warning(f"Failed to send password reset email to {request_data.email}")
+        
+        # Always return success message for security
+        return {"message": "If the email exists in our system, a reset link has been sent"}
+        
+    except Exception as e:
+        logger.error(f"Password reset error: {str(e)}")
+        # Don't reveal internal errors for security
+        return {"message": "If the email exists in our system, a reset link has been sent"}
+
+@app.post("/auth/reset-password")
+async def reset_password(
+    reset_data: PasswordResetConfirm,
+    db: Database = Depends(get_database)
+):
+    """Reset user password with token"""
+    try:
+        auth_service = AuthService(db)
+        token_service = app.state.token_service
+        
+        # Verify the reset token
+        is_valid = await token_service.verify_token(
+            reset_data.email,
+            reset_data.token,
+            "password_reset"
+        )
+        
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        
+        # Get user
+        user = await auth_service.get_user_by_email(reset_data.email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Update password
+        await auth_service.update_user(user["id"], {"password": reset_data.new_password})
+        
+        logger.info(f"Password reset successfully for {reset_data.email}")
+        return {"message": "Password reset successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password reset confirmation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password reset failed"
+        )
+
 @app.post("/auth/refresh")
 async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -211,43 +445,6 @@ async def refresh_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
-        )
-
-@app.post("/auth/forgot-password")
-async def forgot_password(
-    email_data: dict,
-    db: Database = Depends(get_database)
-):
-    """Send password reset email"""
-    try:
-        email = email_data.get("email")
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is required"
-            )
-        
-        auth_service = AuthService(db)
-        
-        # Check if user exists
-        user = await auth_service.get_user_by_email(email)
-        if not user:
-            # Don't reveal if email exists or not
-            return {"message": "If the email exists, a reset link has been sent"}
-        
-        # In a real implementation, you would:
-        # 1. Generate a password reset token
-        # 2. Send an email with the reset link
-        # 3. Store the token in the database with expiration
-        
-        # For now, just return success
-        return {"message": "Password reset email sent"}
-        
-    except Exception as e:
-        logger.error(f"Password reset error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send password reset email"
         )
 
 # User profile endpoints

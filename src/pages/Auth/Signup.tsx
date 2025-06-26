@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
-import { Eye, EyeOff, Camera } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, CheckCircle } from "lucide-react";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
 
   const validateForm = () => {
     const newErrors = { name: "", email: "", password: "", confirmPassword: "", age: "", general: "" };
@@ -90,7 +91,8 @@ const Signup: React.FC = () => {
     );
     
     if (result.success) {
-      navigate("/");
+      // Show email verification notice instead of navigating directly
+      setShowEmailVerification(true);
     } else {
       setErrors(prev => ({ ...prev, general: result.error || "Signup failed" }));
     }
@@ -130,6 +132,84 @@ const Signup: React.FC = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  const resendVerificationEmail = async () => {
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (response.ok) {
+        // Show success message or update UI
+        console.log("Verification email resent");
+      }
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+    }
+  };
+
+  if (showEmailVerification) {
+    return (
+      <div className="min-h-screen bg-[var(--border-dark)] flex flex-col">
+        {/* Header */}
+        <div className="bg-white px-4 py-6 text-center border-b border-[var(--border-grey)]">
+          <h1 className="text-[2rem] font-bold text-[var(--primary-color)]">SafeDoser</h1>
+        </div>
+
+        {/* Email Verification Notice */}
+        <div className="flex-1 flex flex-col justify-center px-6 py-8">
+          <div className="max-w-sm mx-auto w-full text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-8 h-8 text-blue-600" />
+            </div>
+            
+            <h2 className="text-[1.75rem] font-bold text-[var(--text-primary)] mb-4">Check Your Email</h2>
+            
+            <p className="text-[var(--text-secondary)] mb-2">
+              Welcome to SafeDoser, {formData.name}! We've sent a verification email to:
+            </p>
+            <p className="text-[var(--text-primary)] font-medium mb-6">{formData.email}</p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-blue-600" />
+                <p className="text-blue-800 text-sm font-medium">Account Created Successfully!</p>
+              </div>
+              <p className="text-blue-700 text-sm">
+                Click the verification link in your email to activate your account and start using SafeDoser.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => navigate("/")}
+                className="block w-full px-6 py-3 bg-[var(--primary-color)] text-white rounded-xl font-medium text-center hover:bg-[var(--primary-dark)] transition-colors"
+              >
+                Continue to App
+              </button>
+              
+              <button
+                onClick={resendVerificationEmail}
+                className="block w-full px-6 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
+              >
+                Resend Verification Email
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-xs text-[var(--text-secondary)]">
+                Didn't receive the email? Check your spam folder or try resending.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--border-dark)] flex flex-col">
@@ -281,6 +361,19 @@ const Signup: React.FC = () => {
               {errors.confirmPassword && (
                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
               )}
+            </div>
+
+            {/* Email Verification Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Mail className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-blue-800 text-sm font-medium">Email Verification Required</p>
+                  <p className="text-blue-700 text-xs mt-1">
+                    We'll send a verification email to activate your account after signup.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Submit Button */}

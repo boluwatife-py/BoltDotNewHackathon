@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Mail, Clock, Shield } from "lucide-react";
 
 const ForgotPassword: React.FC = () => {
-  const { resetPassword, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = () => {
     if (!email.trim()) {
@@ -28,13 +27,28 @@ const ForgotPassword: React.FC = () => {
     
     if (!validateEmail()) return;
 
-    const result = await resetPassword(email);
-    
-    if (result.success) {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      // Always show success for security (don't reveal if email exists)
       setIsSuccess(true);
-      setError("");
-    } else {
-      setError(result.error || "Failed to send reset email");
+      
+    } catch (error) {
+      console.error("Password reset error:", error);
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,18 +77,52 @@ const ForgotPassword: React.FC = () => {
             <h2 className="text-[1.75rem] font-bold text-[var(--text-primary)] mb-4">Check Your Email</h2>
             
             <p className="text-[var(--text-secondary)] mb-2">
-              We've sent a password reset link to:
+              If an account with that email exists, we've sent a password reset link to:
             </p>
             <p className="text-[var(--text-primary)] font-medium mb-6">{email}</p>
             
-            <p className="text-[var(--text-secondary)] text-sm mb-8">
-              Click the link in the email to reset your password. If you don't see it, check your spam folder.
-            </p>
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <Mail className="w-5 h-5 text-blue-600" />
+                <h3 className="font-medium text-blue-800">What to do next:</h3>
+              </div>
+              <ul className="text-blue-700 text-sm space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">1.</span>
+                  <span>Check your email inbox for a message from SafeDoser</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">2.</span>
+                  <span>Click the "Reset Password" button in the email</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">3.</span>
+                  <span>Create your new password on the secure page</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-1">4.</span>
+                  <span>Sign in with your new password</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Security & Timing Info */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-center gap-2 text-sm text-[var(--text-secondary)]">
+                <Clock className="w-4 h-4" />
+                <span>Reset link expires in 1 hour</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm text-[var(--text-secondary)]">
+                <Shield className="w-4 h-4" />
+                <span>Check your spam folder if you don't see the email</span>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <Link
                 to="/auth/login"
-                className="block w-full px-6 py-3 bg-[var(--primary-color)] text-white rounded-xl font-medium text-center"
+                className="block w-full px-6 py-3 bg-[var(--primary-color)] text-white rounded-xl font-medium text-center hover:bg-[var(--primary-dark)] transition-colors"
               >
                 Back to Sign In
               </Link>
@@ -84,10 +132,24 @@ const ForgotPassword: React.FC = () => {
                   setIsSuccess(false);
                   setEmail("");
                 }}
-                className="block w-full px-6 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center"
+                className="block w-full px-6 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
               >
                 Try Different Email
               </button>
+            </div>
+
+            {/* Didn't receive email section */}
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-[var(--text-primary)] mb-2">Didn't receive the email?</h4>
+              <p className="text-sm text-[var(--text-secondary)] mb-3">
+                It may take a few minutes to arrive. If you still don't see it:
+              </p>
+              <ul className="text-xs text-[var(--text-secondary)] space-y-1 text-left">
+                <li>• Check your spam/junk folder</li>
+                <li>• Make sure you entered the correct email address</li>
+                <li>• Try requesting another reset link</li>
+                <li>• Contact support if the problem persists</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -119,7 +181,7 @@ const ForgotPassword: React.FC = () => {
           <div className="text-center mb-8">
             <h2 className="text-[1.75rem] font-bold text-[var(--text-primary)] mb-2">Reset Password</h2>
             <p className="text-[var(--text-secondary)]">
-              Enter your email address and we'll send you a link to reset your password
+              Enter your email address and we'll send you a secure link to reset your password
             </p>
           </div>
 
@@ -145,6 +207,19 @@ const ForgotPassword: React.FC = () => {
               />
             </div>
 
+            {/* Security Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Shield className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-blue-800 text-sm font-medium">Security Notice</p>
+                  <p className="text-blue-700 text-xs mt-1">
+                    For your security, we'll only send reset instructions if this email is associated with a SafeDoser account.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Submit Button */}
             <Button
               text="Send Reset Link"
@@ -161,6 +236,13 @@ const ForgotPassword: React.FC = () => {
             >
               Back to Sign In
             </Link>
+          </div>
+
+          {/* Help Section */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-[var(--text-secondary)]">
+              Need help? Contact our support team for assistance with your account.
+            </p>
           </div>
         </div>
       </div>

@@ -9,6 +9,8 @@ import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
+import EmailVerification from "./pages/Auth/EmailVerification";
+import ResetPassword from "./pages/Auth/ResetPassword";
 
 // Protected Pages
 import Home from "./pages/Home";
@@ -51,6 +53,8 @@ function AppRoutes() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/signup" element={<Signup />} />
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/verify-email" element={<EmailVerification />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/auth/login" replace />} />
       </Routes>
     );
