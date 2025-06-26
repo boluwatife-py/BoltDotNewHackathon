@@ -36,7 +36,12 @@ export function useChat() {
         const { data } = await chatAPI.getHistory(token);
         
         if (data.messages && data.messages.length > 0) {
-          setMessages(data.messages);
+          // Transform backend messages to frontend format
+          const transformedMessages: Message[] = data.messages.map((msg: any) => ({
+            sender: msg.sender,
+            text: msg.message
+          }));
+          setMessages(transformedMessages);
         } else {
           // Default welcome message
           setMessages([{

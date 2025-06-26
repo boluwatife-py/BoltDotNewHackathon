@@ -189,7 +189,8 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     navigate('/scan/manual', { 
       state: { 
         editMode: true, 
-        supplementData: formData 
+        supplementData: formData,
+        supplementId: supplement.id
       } 
     });
   };

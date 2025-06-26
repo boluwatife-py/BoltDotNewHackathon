@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, CheckCircle } from "lucide-react";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
@@ -18,6 +19,16 @@ const Login: React.FC = () => {
     general: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Check for success message from navigation state
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the message from navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const validateForm = () => {
     const newErrors = { email: "", password: "", general: "" };
@@ -80,12 +91,15 @@ const Login: React.FC = () => {
             <p className="text-[var(--text-secondary)]">Sign in to continue managing your medications</p>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="bg-[var(--primary-light)] border border-[var(--primary-color)] rounded-lg p-3 mb-6">
-            <p className="text-xs font-medium text-[var(--primary-color)] mb-1">Demo Credentials:</p>
-            <p className="text-xs text-[var(--text-secondary)]">Email: demo@safedoser.com</p>
-            <p className="text-xs text-[var(--text-secondary)]">Password: password123</p>
-          </div>
+          {/* Success Message */}
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <p className="text-green-800 text-sm font-medium">{successMessage}</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* General Error */}

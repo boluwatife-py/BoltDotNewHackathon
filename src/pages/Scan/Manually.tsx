@@ -11,6 +11,7 @@ import InteractionsList from "../../components/IteractionList";
 import Toggle from "../../components/UI/Toggle";
 import Button from "../../components/UI/Button";
 import SuppDetails from "../../components/UI/SuppDetails";
+import { supplementsAPI } from "../../config/api";
 import { type FormData } from "../../types/FormData";
 
 function AddManually() {
@@ -136,16 +137,22 @@ function AddManually() {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    // Simulate API request
-    setTimeout(() => {
-      const payload = {
-        supplement: formData.supplementName,
-        strength: "5000",
-        dosageForm: formData.dosageForm,
-        brandName: formData.brandName,
-        dose: formData.dose,
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error("No authentication token");
+      }
+
+      // Prepare supplement data for backend
+      const supplementPayload = {
+        name: formData.supplementName,
+        brand: formData.brandName,
+        dosage_form: formData.dosageForm,
+        dose_quantity: formData.dose.quantity,
+        dose_unit: formData.dose.unit,
         frequency: formData.frequency,
-        timesOfDay: formData.timesOfDay,
+        times_of_day: formData.timesOfDay,
         interactions: [
           ...formData.interactions.fixedInteractions
             .filter((i) => i.checked)
@@ -154,10 +161,20 @@ function AddManually() {
             .filter((i) => i.checked)
             .map((i) => i.text),
         ],
-        remindMe: formData.remindMe,
-        editMode,
+        remind_me: formData.remindMe,
+        expiration_date: "2025-12-31", // Default expiration date
+        quantity: "30 tablets", // Default quantity
+        image_url: null
       };
-      console.log(payload);
+
+      if (editMode && location.state?.supplementId) {
+        // Update existing supplement
+        await supplementsAPI.update(token, location.state.supplementId, supplementPayload);
+      } else {
+        // Create new supplement
+        await supplementsAPI.create(token, supplementPayload);
+      }
+
       setIsLoading(false);
       
       if (editMode) {
@@ -167,7 +184,11 @@ function AddManually() {
         // If adding new, go to done page
         navigate("/scan/add/done");
       }
-    }, 2000);
+    } catch (error: any) {
+      console.error("Error saving supplement:", error);
+      setIsLoading(false);
+      // You could show an error message here
+    }
   };
 
   const handleTimesOfDayChange = (timesOfDay: FormData['timesOfDay']) => {

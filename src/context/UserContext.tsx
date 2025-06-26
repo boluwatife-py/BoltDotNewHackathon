@@ -1,5 +1,6 @@
-import React, { createContext, useContext, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
+import { supplementsAPI } from "../config/api";
 
 interface User {
   name: string;
@@ -8,14 +9,12 @@ interface User {
   avatarUrl?: string;
 }
 
-const defaultUser: User = {
+const UserContext = createContext<User>({
   name: "User",
-  completedDoses: 3,
-  totalDoses: 4,
+  completedDoses: 0,
+  totalDoses: 0,
   avatarUrl: "/defaultUser.png",
-};
-
-const UserContext = createContext<User>(defaultUser);
+});
 
 export const useUser = () => {
   const { user } = useAuth();
@@ -25,8 +24,8 @@ export const useUser = () => {
   if (user) {
     return {
       name: user.name,
-      completedDoses: 3, // This would come from your supplement data
-      totalDoses: 4,     // This would come from your supplement data
+      completedDoses: contextUser.completedDoses,
+      totalDoses: contextUser.totalDoses,
       avatarUrl: user.avatarUrl || "/defaultUser.png",
     };
   }
@@ -39,8 +38,82 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+  const { user } = useAuth();
+  const [supplementStats, setSupplementStats] = useState({
+    completedDoses: 0,
+    totalDoses: 0,
+  });
+
+  // Load supplement statistics when user changes
+  useEffect(() => {
+    if (user) {
+      loadSupplementStats();
+    } else {
+      setSupplementStats({ completedDoses: 0, totalDoses: 0 });
+    }
+  }, [user]);
+
+  const loadSupplementStats = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const { data } = await supplementsAPI.getAll(token);
+      
+      // Calculate today's supplement statistics
+      const today = new Date().toDateString();
+      let totalDoses = 0;
+      let completedDoses = 0;
+
+      data.forEach((supplement: any) => {
+        // Parse times_of_day to count total doses for today
+        let timesOfDay = supplement.times_of_day;
+        if (typeof timesOfDay === 'string') {
+          try {
+            timesOfDay = JSON.parse(timesOfDay);
+          } catch {
+            timesOfDay = {};
+          }
+        }
+
+        // Count total doses scheduled for today
+        for (const period of ['Morning', 'Afternoon', 'Evening']) {
+          const times = timesOfDay[period];
+          if (Array.isArray(times)) {
+            totalDoses += times.length;
+          }
+        }
+
+        // In a real implementation, you would check supplement logs
+        // For now, we'll simulate some completed doses
+        if (supplement.remind_me) {
+          // Simulate that some supplements have been taken
+          const random = Math.random();
+          if (random > 0.3) { // 70% chance of being taken
+            completedDoses += Math.floor(totalDoses * 0.7);
+          }
+        }
+      });
+
+      setSupplementStats({
+        completedDoses: Math.min(completedDoses, totalDoses),
+        totalDoses
+      });
+    } catch (error) {
+      console.error("Error loading supplement stats:", error);
+      setSupplementStats({ completedDoses: 0, totalDoses: 0 });
+    }
+  };
+
+  const contextValue: User = {
+    name: user?.name || "User",
+    completedDoses: supplementStats.completedDoses,
+    totalDoses: supplementStats.totalDoses,
+    avatarUrl: user?.avatarUrl || "/defaultUser.png",
+  };
+
   return (
-    <UserContext.Provider value={defaultUser}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );
