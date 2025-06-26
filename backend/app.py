@@ -10,10 +10,10 @@ from typing import Optional, List, Dict, Any
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, validator
 import uvicorn
 
@@ -136,6 +136,129 @@ async def email_status():
         }
     
     return config
+
+# OAuth endpoints
+@app.get("/auth/google")
+async def google_oauth(request: Request):
+    """Initiate Google OAuth flow"""
+    try:
+        # In a real implementation, you would:
+        # 1. Generate a state parameter for security
+        # 2. Redirect to Google OAuth URL with proper parameters
+        
+        # For now, we'll return a placeholder response
+        # You would need to implement proper OAuth flow with Google
+        google_oauth_url = (
+            "https://accounts.google.com/oauth/authorize"
+            "?client_id=YOUR_GOOGLE_CLIENT_ID"
+            "&redirect_uri=YOUR_REDIRECT_URI"
+            "&scope=openid email profile"
+            "&response_type=code"
+            "&state=random_state_string"
+        )
+        
+        # For demo purposes, return an error message
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth not yet implemented. Please use email/password signup."
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google OAuth error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth initialization failed"
+        )
+
+@app.get("/auth/apple")
+async def apple_oauth(request: Request):
+    """Initiate Apple OAuth flow"""
+    try:
+        # In a real implementation, you would:
+        # 1. Generate a state parameter for security
+        # 2. Redirect to Apple OAuth URL with proper parameters
+        
+        # For now, we'll return a placeholder response
+        # You would need to implement proper OAuth flow with Apple
+        apple_oauth_url = (
+            "https://appleid.apple.com/auth/authorize"
+            "?client_id=YOUR_APPLE_CLIENT_ID"
+            "&redirect_uri=YOUR_REDIRECT_URI"
+            "&scope=name email"
+            "&response_type=code"
+            "&state=random_state_string"
+        )
+        
+        # For demo purposes, return an error message
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Apple OAuth not yet implemented. Please use email/password signup."
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apple OAuth error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth initialization failed"
+        )
+
+@app.get("/auth/google/callback")
+async def google_oauth_callback(code: str, state: str, db: Database = Depends(get_database)):
+    """Handle Google OAuth callback"""
+    try:
+        # In a real implementation, you would:
+        # 1. Verify the state parameter
+        # 2. Exchange the code for an access token
+        # 3. Get user info from Google
+        # 4. Create or login the user
+        # 5. Generate JWT tokens
+        # 6. Redirect to frontend with tokens
+        
+        # For demo purposes, return an error
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth callback not yet implemented"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google OAuth callback error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth callback failed"
+        )
+
+@app.get("/auth/apple/callback")
+async def apple_oauth_callback(code: str, state: str, db: Database = Depends(get_database)):
+    """Handle Apple OAuth callback"""
+    try:
+        # In a real implementation, you would:
+        # 1. Verify the state parameter
+        # 2. Exchange the code for an access token
+        # 3. Get user info from Apple
+        # 4. Create or login the user
+        # 5. Generate JWT tokens
+        # 6. Redirect to frontend with tokens
+        
+        # For demo purposes, return an error
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Apple OAuth callback not yet implemented"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apple OAuth callback error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth callback failed"
+        )
 
 # Email verification models
 class EmailVerificationRequest(BaseModel):
