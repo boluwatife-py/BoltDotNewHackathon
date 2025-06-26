@@ -211,7 +211,7 @@ async def apple_oauth(request: Request):
         )
 
 @app.get("/auth/google/callback")
-async def google_oauth_callback(code: str, state: str, error: str = None):
+async def google_oauth_callback(code: str, state: str, error: Optional[str] = None):
     """Handle Google OAuth callback"""
     try:
         oauth_service = app.state.oauth_service
