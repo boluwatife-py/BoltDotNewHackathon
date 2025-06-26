@@ -296,7 +296,7 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = self.from_email
+            msg['From'] = self.from_email if self.from_email is not None else "no-reply@example.com"
             msg['To'] = to_email
             
             # Add text and HTML parts
@@ -412,6 +412,12 @@ class EmailService:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.set_debuglevel(0)
                 server.starttls()
+                if self.smtp_username is None or self.smtp_password is None:
+                    return EmailDeliveryResult(
+                        success=False,
+                        message="SMTP credentials not configured",
+                        error_code="SMTP_CREDENTIALS_MISSING"
+                    )
                 server.login(self.smtp_username, self.smtp_password)
                 
                 return EmailDeliveryResult(
