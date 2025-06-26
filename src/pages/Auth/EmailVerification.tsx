@@ -24,42 +24,27 @@ const EmailVerification: React.FC = () => {
 
   const verifyEmail = async () => {
     try {
-      const response = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          token,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus("success");
-        setMessage("Your email has been verified successfully!");
-        
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate("/auth/login", { 
-            state: { message: "Email verified! You can now sign in." }
-          });
-        }, 3000);
-      } else {
-        if (data.error?.includes("expired")) {
-          setStatus("expired");
-          setMessage("This verification link has expired. Please request a new one.");
-        } else {
-          setStatus("error");
-          setMessage(data.error || "Verification failed");
-        }
-      }
-    } catch (error) {
+      const { data } = await authAPI.verifyEmail(email!, token!);
+      
+      setStatus("success");
+      setMessage("Your email has been verified successfully!");
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate("/auth/login", { 
+          state: { message: "Email verified! You can now sign in." }
+        });
+      }, 3000);
+    } catch (error: any) {
       console.error("Verification error:", error);
-      setStatus("error");
-      setMessage("Network error. Please check your connection and try again.");
+      
+      if (error.message?.includes("expired")) {
+        setStatus("expired");
+        setMessage("This verification link has expired. Please request a new one.");
+      } else {
+        setStatus("error");
+        setMessage(error.message || "Verification failed");
+      }
     }
   };
 
@@ -68,25 +53,13 @@ const EmailVerification: React.FC = () => {
 
     setIsResending(true);
     try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage("A new verification email has been sent to your inbox.");
-        setStatus("success");
-      } else {
-        setMessage(data.error || "Failed to resend verification email");
-      }
-    } catch (error) {
+      const { data } = await authAPI.resendVerification(email);
+      
+      setMessage("A new verification email has been sent to your inbox.");
+      setStatus("success");
+    } catch (error: any) {
       console.error("Resend error:", error);
-      setMessage("Failed to resend verification email. Please try again.");
+      setMessage(error.message || "Failed to resend verification email");
     } finally {
       setIsResending(false);
     }

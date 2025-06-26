@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { authAPI } from "../../config/api";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
 
@@ -67,45 +68,27 @@ const ResetPassword: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          token,
-          new_password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setIsSuccess(true);
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate("/auth/login", { 
-            state: { message: "Password reset successfully! You can now sign in with your new password." }
-          });
-        }, 3000);
-      } else {
-        if (data.error?.includes("expired") || data.error?.includes("invalid")) {
-          setTokenValid(false);
-          setErrors(prev => ({ 
-            ...prev, 
-            general: "This reset link has expired or is invalid. Please request a new password reset." 
-          }));
-        } else {
-          setErrors(prev => ({ ...prev, general: data.error || "Password reset failed" }));
-        }
-      }
-    } catch (error) {
+      const { data } = await authAPI.resetPassword(email, token, formData.password);
+      
+      setIsSuccess(true);
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate("/auth/login", { 
+          state: { message: "Password reset successfully! You can now sign in with your new password." }
+        });
+      }, 3000);
+    } catch (error: any) {
       console.error("Password reset error:", error);
-      setErrors(prev => ({ 
-        ...prev, 
-        general: "Network error. Please check your connection and try again." 
-      }));
+      
+      if (error.message?.includes("expired") || error.message?.includes("invalid")) {
+        setTokenValid(false);
+        setErrors(prev => ({ 
+          ...prev, 
+          general: "This reset link has expired or is invalid. Please request a new password reset." 
+        }));
+      } else {
+        setErrors(prev => ({ ...prev, general: error.message || "Password reset failed" }));
+      }
     } finally {
       setIsLoading(false);
     }

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Button from "../../components/UI/Button";
-import { Eye, EyeOff, Camera, Mail, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle } from "lucide-react";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +28,10 @@ const Signup: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    sent: boolean;
+    message?: string;
+  } | null>(null);
 
   const validateForm = () => {
     const newErrors = { name: "", email: "", password: "", confirmPassword: "", age: "", general: "" };
@@ -93,6 +97,10 @@ const Signup: React.FC = () => {
     if (result.success) {
       // Show email verification notice instead of navigating directly
       setShowEmailVerification(true);
+      setEmailStatus({
+        sent: result.emailSent || false,
+        message: result.emailMessage
+      });
     } else {
       setErrors(prev => ({ ...prev, general: result.error || "Signup failed" }));
     }
@@ -135,7 +143,7 @@ const Signup: React.FC = () => {
 
   const resendVerificationEmail = async () => {
     try {
-      const response = await fetch("/api/auth/resend-verification", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com'}/auth/resend-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,8 +152,11 @@ const Signup: React.FC = () => {
       });
 
       if (response.ok) {
-        // Show success message or update UI
-        console.log("Verification email resent");
+        setEmailStatus(prev => ({
+          ...prev!,
+          sent: true,
+          message: "Verification email resent successfully!"
+        }));
       }
     } catch (error) {
       console.error("Failed to resend verification email:", error);
@@ -174,15 +185,28 @@ const Signup: React.FC = () => {
             </p>
             <p className="text-[var(--text-primary)] font-medium mb-6">{formData.email}</p>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-4 h-4 text-blue-600" />
-                <p className="text-blue-800 text-sm font-medium">Account Created Successfully!</p>
+            {/* Email Status */}
+            {emailStatus?.sent ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <p className="text-green-800 text-sm font-medium">Email Sent Successfully!</p>
+                </div>
+                <p className="text-green-700 text-sm">
+                  Click the verification link in your email to activate your account and start using SafeDoser.
+                </p>
               </div>
-              <p className="text-blue-700 text-sm">
-                Click the verification link in your email to activate your account and start using SafeDoser.
-              </p>
-            </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600" />
+                  <p className="text-yellow-800 text-sm font-medium">Email Delivery Issue</p>
+                </div>
+                <p className="text-yellow-700 text-sm">
+                  {emailStatus?.message || "There was an issue sending the verification email. You can try resending it below."}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
               <button
