@@ -117,9 +117,9 @@ const Home: React.FC = () => {
   if (error) {
     return (
       <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">
-        <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
-          SafeDoser
-        </h1>
+        <div className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] bg-white">
+          <img src="/src/assets/images/logo2 1.svg" alt="SafeDoser" className="h-11" />
+        </div>
         
         <div className="p-4">
           <GreetingCard />
@@ -143,9 +143,9 @@ const Home: React.FC = () => {
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">
-      <h1 className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] text-[28px] font-bold text-[var(--text-primary)] bg-white">
-        SafeDoser
-      </h1>
+      <div className="flex justify-center px-[16px] pt-[var(--lg)] pb-[var(--md)] bg-white">
+        <img src="/src/assets/images/logo2 1.svg" alt="SafeDoser" className="h-11" />
+      </div>
 
       <div className="p-4">
         <GreetingCard />

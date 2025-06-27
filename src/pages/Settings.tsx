@@ -1,6 +1,7 @@
 import HeadInfo from "../components/UI/HeadInfo";
 import SettingsGridItem from "../components/Settings/SettingsGridItem";
 import { useAuth } from "../context/AuthContext";
+import { useChat } from "../hooks/useChat";
 import User from "../assets/icons/Settings/user.svg";
 import Reminder from "../assets/icons/Settings/reminder.svg"
 import FamilyManagement from "../assets/icons/Settings/family-management.svg"
@@ -8,63 +9,77 @@ import SupplementLIst from "../assets/icons/Settings/supplists.svg"
 import Display from "../assets/icons/Settings/DisplayPreference.svg"
 import Privacy from "../assets/icons/Settings/privacy.svg"
 import AppInfo from "../assets/icons/Settings/AppInfo.svg"
-
-const settingsItems: {
-  link: string;
-  icon: string;
-  text: string;
-  subtext: string;
-}[] = [
-  {
-    link: "",
-    icon: User,
-    subtext: "Manage your profile and preferences",
-    text: "Account Settings",
-  },
-  {
-    link: "",
-    icon: Reminder,
-    subtext: "Customize your reminder settings",
-    text: "Reminder Settings",
-  },
-  {
-    link: "",
-    icon: FamilyManagement,
-    subtext: "Manage your family members",
-    text: "Family Management",
-  },
-  {
-    link: "/settings/supplement-list",
-    icon: SupplementLIst,
-    subtext: "Manage your enrolled supplements",
-    text: "My Supplement lists",
-  },
-  {
-    link: "",
-    icon: Display,
-    subtext: "Adjust display settings",
-    text: "Display Preferences",
-  },
-  {
-    link: "/settings/privacy-data",
-    icon: Privacy,
-    subtext: "Manage your privacy and data",
-    text: "Privacy & Data Settings",
-  },
-  {
-    link: "/settings/app-info",
-    icon: AppInfo,
-    subtext: "View app information",
-    text: "App Info",
-  },
-];
+import { useState } from "react";
 
 export default function Settings() {
   const { logout, user } = useAuth();
+  const { clearChatHistory } = useChat();
+  const [isClearingChat, setIsClearingChat] = useState(false);
+  const [chatCleared, setChatCleared] = useState(false);
 
   const handleLogout = () => {
     logout();
   };
+
+  const handleClearChatHistory = async () => {
+    if (isClearingChat) return;
+    
+    setIsClearingChat(true);
+    try {
+      await clearChatHistory();
+      setChatCleared(true);
+      setTimeout(() => setChatCleared(false), 3000);
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+    } finally {
+      setIsClearingChat(false);
+    }
+  };
+
+  const settingsItems = [
+    {
+      link: "",
+      icon: User,
+      subtext: "Manage your profile and preferences",
+      text: "Account Settings",
+    },
+    {
+      link: "",
+      icon: Reminder,
+      subtext: "Customize your reminder settings",
+      text: "Reminder Settings",
+    },
+    {
+      link: "",
+      icon: FamilyManagement,
+      subtext: "Manage your family members",
+      text: "Family Management",
+    },
+    {
+      link: "/settings/supplement-list",
+      icon: SupplementLIst,
+      subtext: "Manage your enrolled supplements",
+      text: "My Supplement lists",
+    },
+    {
+      link: "",
+      icon: Display,
+      subtext: "Adjust display settings",
+      text: "Display Preferences",
+    },
+    {
+      link: "/settings/privacy-data",
+      icon: Privacy,
+      subtext: "Manage your privacy and data",
+      text: "Privacy & Data Settings",
+    },
+    {
+      link: "/settings/app-info",
+      icon: AppInfo,
+      subtext: "View app information",
+      text: "App Info",
+    },
+  ];
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
@@ -99,6 +114,33 @@ export default function Settings() {
             ></SettingsGridItem>
           );
         })}
+      </div>
+
+      {/* Chat History Section */}
+      <div className="mx-4 mt-4">
+        <div className="bg-white rounded-lg p-4 border border-[var(--border-grey)]">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-2">Chat History</h3>
+          <p className="text-sm text-[var(--text-secondary)] mb-3">
+            Clear your conversation history with the SafeDoser Assistant
+          </p>
+          <button
+            onClick={handleClearChatHistory}
+            disabled={isClearingChat}
+            className={`w-full py-2 px-4 rounded-lg text-white font-medium transition-colors ${
+              isClearingChat 
+                ? "bg-gray-400 cursor-not-allowed" 
+                : chatCleared 
+                  ? "bg-green-500" 
+                  : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]"
+            }`}
+          >
+            {isClearingChat 
+              ? "Clearing..." 
+              : chatCleared 
+                ? "Chat History Cleared!" 
+                : "Clear Chat History"}
+          </button>
+        </div>
       </div>
 
       {/* Logout Button */}
