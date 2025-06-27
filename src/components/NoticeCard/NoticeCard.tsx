@@ -37,7 +37,7 @@ const NoticeCard: React.FC = () => {
             <SwiperSlide>
               <div 
                 className="relative h-full cursor-pointer group overflow-hidden"
-                onClick={() => handleNoticeClick("https://safedoser.org")}
+                onClick={() => handleNoticeClick("https://bolt.new")}
               >
                 <img 
                   src="/src/assets/images/banner1Bolt.svg" 
