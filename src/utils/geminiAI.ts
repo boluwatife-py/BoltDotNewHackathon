@@ -29,8 +29,7 @@ export class GeminiAIService {
 
   async generateResponse(
     userMessage: string,
-    context: ChatContext,
-    chatHistory: ChatMessage[]
+    context: ChatContext
   ): Promise<string> {
     try {
       // In a real implementation, this would make an actual API call to Gemini
@@ -41,27 +40,6 @@ export class GeminiAIService {
       console.error('Gemini AI Error:', error);
       throw new Error('Failed to generate AI response');
     }
-  }
-
-  private buildContextPrompt(context: ChatContext): string {
-    const supplementsList = context.supplements.map(supp => 
-      `- ${supp.name} at ${supp.time} (${supp.type}) - Tags: ${supp.tags.join(', ')} - Status: ${supp.completed ? 'Completed' : 'Pending'}`
-    ).join('\n');
-
-    return `
-Name: ${context.userName}
-Age: ${context.userAge} years old
-Current Time: ${context.currentTime}
-
-Current Supplements:
-${supplementsList || 'No supplements currently tracked'}
-`;
-  }
-
-  private buildHistoryPrompt(chatHistory: ChatMessage[]): string {
-    return chatHistory.slice(-6).map(msg => 
-      `${msg.sender.toUpperCase()}: ${msg.text}`
-    ).join('\n');
   }
 
   private generateIntelligentResponse(userMessage: string, context: ChatContext): string {

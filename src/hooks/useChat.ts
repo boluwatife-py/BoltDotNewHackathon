@@ -89,9 +89,9 @@ export function useChat() {
     } catch (error: any) {
       console.error("Chat error:", error);
       
-      if (error.message.includes('401') || error.message.includes('unauthorized')) {
+      if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
         setErrorType("auth");
-      } else if (error.message.includes('500') || error.message.includes('server')) {
+      } else if (error.message?.includes('500') || error.message?.includes('server')) {
         setErrorType("server");
       } else {
         setErrorType("network");
