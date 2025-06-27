@@ -52,13 +52,9 @@ RESPONSE STYLE:
 `;
 
 export class GeminiAIService {
-  private apiKey: string;
-  private baseURL: string;
-
   constructor() {
     // In a real implementation, this would come from environment variables
-    this.apiKey = process.env.VITE_GEMINI_API_KEY || 'demo-key';
-    this.baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    // For now, we'll use a demo implementation
   }
 
   async generateResponse(
@@ -71,20 +67,6 @@ export class GeminiAIService {
       const contextPrompt = this.buildContextPrompt(context);
       const historyPrompt = this.buildHistoryPrompt(chatHistory);
       
-      const fullPrompt = `
-${MEDICAL_KNOWLEDGE_PROMPT}
-
-USER CONTEXT:
-${contextPrompt}
-
-CONVERSATION HISTORY:
-${historyPrompt}
-
-USER MESSAGE: ${userMessage}
-
-Please provide a helpful, medically accurate response considering the user's context and supplement regimen. Always prioritize safety and recommend consulting healthcare providers when appropriate.
-`;
-
       // In a real implementation, this would make an actual API call to Gemini
       // For now, we'll simulate with intelligent responses based on the context
       return this.generateIntelligentResponse(userMessage, context);
@@ -133,7 +115,7 @@ ${supplementsList || 'No supplements currently tracked'}
     );
 
     if (mentionedSupplement) {
-      return this.generateSupplementSpecificResponse(mentionedSupplement, userMessage, userName, userAge);
+      return this.generateSupplementSpecificResponse(mentionedSupplement, userName, userAge);
     }
 
     // Drug interaction questions
@@ -199,7 +181,7 @@ I can help you with:
 Could you be more specific about what you'd like to know? I'm here to provide evidence-based information while always recommending you consult with your healthcare provider for personalized advice.`;
   }
 
-  private generateSupplementSpecificResponse(supplement: any, userMessage: string, userName: string, userAge: number): string {
+  private generateSupplementSpecificResponse(supplement: any, userName: string, userAge: number): string {
     const supplementName = supplement.name;
     const time = supplement.time;
     const tags = supplement.tags.join(', ');

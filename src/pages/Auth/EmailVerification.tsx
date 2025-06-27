@@ -24,7 +24,7 @@ const EmailVerification: React.FC = () => {
 
   const verifyEmail = async () => {
     try {
-      const { data } = await authAPI.verifyEmail(email!, token!);
+      await authAPI.verifyEmail(email!, token!);
       
       setStatus("success");
       setMessage("Your email has been verified successfully!");
@@ -53,7 +53,7 @@ const EmailVerification: React.FC = () => {
 
     setIsResending(true);
     try {
-      const { data } = await authAPI.resendVerification(email);
+      await authAPI.resendVerification(email);
       
       setMessage("A new verification email has been sent to your inbox.");
       setStatus("success");

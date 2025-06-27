@@ -61,7 +61,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const { data } = await supplementsAPI.getAll(token);
       
       // Calculate today's supplement statistics
-      const today = new Date().toDateString();
       let totalDoses = 0;
       let completedDoses = 0;
 

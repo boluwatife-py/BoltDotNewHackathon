@@ -43,15 +43,15 @@ export function useSupplementList() {
         }
 
         // Convert time strings to Date objects
-        const convertedTimesOfDay = {
+        const convertedTimesOfDay: { Morning: Date[]; Afternoon: Date[]; Evening: Date[] } = {
           Morning: [],
           Afternoon: [],
           Evening: []
         };
 
         for (const [period, times] of Object.entries(timesOfDay)) {
-          if (Array.isArray(times)) {
-            convertedTimesOfDay[period as keyof typeof convertedTimesOfDay] = times.map((timeStr: string) => {
+          if (Array.isArray(times) && (period === 'Morning' || period === 'Afternoon' || period === 'Evening')) {
+            convertedTimesOfDay[period] = times.map((timeStr: string) => {
               try {
                 return new Date(timeStr);
               } catch {

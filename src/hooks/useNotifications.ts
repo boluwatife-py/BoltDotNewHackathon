@@ -8,8 +8,8 @@ interface NotificationOptions {
 }
 
 export function useNotifications({ supplements, onSupplementDue, onSupplementMissed }: NotificationOptions) {
-  const notificationTimeouts = useRef<Map<number, NodeJS.Timeout>>(new Map());
-  const missedTimeouts = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const notificationTimeouts = useRef<Map<number, number>>(new Map());
+  const missedTimeouts = useRef<Map<number, number>>(new Map());
   const lastNotifiedTime = useRef<Map<number, string>>(new Map());
 
   // Request notification permission on mount
@@ -42,7 +42,6 @@ export function useNotifications({ supplements, onSupplementDue, onSupplementMis
       }
 
       const timeUntilDue = supplementTime.getTime() - now.getTime();
-      const timeKey = `${supplement.id}-${supplement.time}`;
 
       // Don't set duplicate notifications for the same supplement at the same time
       if (lastNotifiedTime.current.get(supplement.id) === supplement.time) {
@@ -50,13 +49,13 @@ export function useNotifications({ supplements, onSupplementDue, onSupplementMis
       }
 
       // Set timeout for when supplement is due
-      const dueTimeout = setTimeout(() => {
+      const dueTimeout = window.setTimeout(() => {
         if (!supplement.muted && !supplement.completed) {
           onSupplementDue(supplement);
           lastNotifiedTime.current.set(supplement.id, supplement.time);
           
           // Set timeout for missed notification (30 minutes after due time)
-          const missedTimeout = setTimeout(() => {
+          const missedTimeout = window.setTimeout(() => {
             if (!supplement.completed) {
               onSupplementMissed(supplement);
             }

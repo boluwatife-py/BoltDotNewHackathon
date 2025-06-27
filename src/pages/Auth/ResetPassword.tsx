@@ -68,7 +68,7 @@ const ResetPassword: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { data } = await authAPI.resetPassword(email, token, formData.password);
+      await authAPI.resetPassword(email, token, formData.password);
       
       setIsSuccess(true);
       // Redirect to login after 3 seconds
