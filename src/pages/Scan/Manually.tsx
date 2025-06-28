@@ -22,6 +22,18 @@ function AddManually() {
   const supplementData = location.state?.supplementData as FormData | undefined;
   const scannedData = location.state?.scannedData;
 
+  // Initialize interactions with proper default structure
+  const defaultInteractions = {
+    fixedInteractions: [
+      { text: "With food", checked: false },
+      { text: "On empty stomach", checked: false },
+      { text: "Avoid alcohol", checked: false },
+      { text: "Avoid dairy", checked: false },
+      { text: "Other", checked: false },
+    ],
+    customInteractions: []
+  };
+
   const [formData, setFormData] = useState<FormData>({
     supplementName: supplementData?.supplementName || scannedData?.name || "",
     supplementStrength: supplementData?.supplementStrength || scannedData?.strength || "",
@@ -34,7 +46,7 @@ function AddManually() {
       Afternoon: [],
       Evening: [],
     },
-    interactions: supplementData?.interactions || { fixedInteractions: [], customInteractions: [] },
+    interactions: supplementData?.interactions || defaultInteractions,
     remindMe: supplementData?.remindMe !== undefined ? supplementData.remindMe : false,
   });
 
@@ -93,6 +105,7 @@ function AddManually() {
   };
 
   const handleInteractionsChange = (interactions: FormData['interactions']) => {
+    console.log("Interactions changed:", interactions); // Debug log
     setFormData((prev) => ({ ...prev, interactions }));
   };
 
@@ -173,6 +186,8 @@ function AddManually() {
         quantity: "30 tablets", // Default quantity
         image_url: null
       };
+
+      console.log("Submitting supplement with interactions:", supplementPayload.interactions); // Debug log
 
       if (editMode && location.state?.supplementId) {
         // Update existing supplement
