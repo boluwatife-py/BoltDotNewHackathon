@@ -32,7 +32,7 @@ class TokenService:
         return token
     
     async def store_verification_token(self, email: str, token: str) -> bool:
-        """Store email verification token in database"""
+        """Store email verification token in database (invalidates previous tokens)"""
         try:
             # First, invalidate any existing verification tokens for this email
             await self._invalidate_existing_tokens(email, "email_verification")
@@ -63,7 +63,7 @@ class TokenService:
             return False
     
     async def store_reset_token(self, email: str, token: str) -> bool:
-        """Store password reset token in database"""
+        """Store password reset token in database (invalidates previous tokens)"""
         try:
             expires_at = datetime.utcnow() + timedelta(hours=1)  # 1 hour expiry
             

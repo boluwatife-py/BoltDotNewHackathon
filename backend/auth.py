@@ -214,24 +214,6 @@ class AuthService:
             user.pop("password_hash", None)
         return user
     
-    async def get_user_by_id_with_verification_check(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get user by ID and check email verification status"""
-        user = await self.db.get_user_by_id(user_id)
-        if not user:
-            return None
-            
-        # Check if email is verified (skip for demo user)
-        if user.get("email") != "demo@safedoser.com" and not user.get("email_verified", False):
-            logger.warning(f"Token validation failed: Email not verified for user {user_id}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email not verified. Please verify your email address to continue using the app."
-            )
-        
-        # Remove sensitive data
-        user.pop("password_hash", None)
-        return user
-    
     async def update_user(self, user_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
         """Update user data"""
         try:
@@ -275,25 +257,33 @@ class AuthService:
             logger.error(f"Error marking email as verified for {email}: {str(e)}")
             return False
 
-# Dependency to get current user with email verification check
+# Dependency to get current user
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Database = Depends(get_database)
 ) -> Dict[str, Any]:
-    """Get current authenticated user with email verification check"""
+    """Get current authenticated user"""
     try:
         auth_service = AuthService(db)
         
         # Verify access token
         user_id = auth_service.verify_access_token(credentials.credentials)
         
-        # Get user data with verification check
-        user = await auth_service.get_user_by_id_with_verification_check(user_id)
+        # Get user data
+        user = await auth_service.get_user_by_id(user_id)
         
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
+            )
+        
+        # Check if email is verified (skip for demo user)
+        if user.get("email") != "demo@safedoser.com" and not user.get("email_verified", False):
+            logger.warning(f"Token validation failed: Email not verified for user {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email not verified. Please verify your email address to continue using the app."
             )
         
         return user
