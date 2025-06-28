@@ -50,15 +50,20 @@ const Login: React.FC = () => {
     const refreshToken = urlParams.get('refresh_token');
     
     if (accessToken && refreshToken) {
-      // Store tokens and redirect
+      // Store tokens
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
       
-      // Clean URL and redirect to home
+      // Clean URL
       window.history.replaceState({}, document.title, location.pathname);
+      
+      // Show success notification
       showNotification('success', 'Successfully signed in with Google!');
-      setTimeout(() => navigate("/"), 1000);
-      return;
+      
+      // Navigate to home page after a short delay
+      setTimeout(() => {
+        navigate("/", { replace: true });
+      }, 1000);
     }
     
     // Check for OAuth errors
