@@ -107,6 +107,38 @@ class Database:
         logger.debug(f"Final prepared supplement data: {prepared_data}")
         return prepared_data
     
+    def _parse_supplement_response(self, supplement: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse supplement data from database response for API response"""
+        logger.debug(f"Parsing supplement response: {supplement.get('id', 'unknown')}")
+        
+        # Create a copy to avoid modifying the original
+        parsed_supplement = supplement.copy()
+        
+        # Parse times_of_day JSON string back to dict
+        if parsed_supplement.get('times_of_day') and isinstance(parsed_supplement['times_of_day'], str):
+            try:
+                parsed_supplement['times_of_day'] = json.loads(parsed_supplement['times_of_day'])
+                logger.debug(f"Parsed times_of_day: {parsed_supplement['times_of_day']}")
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse times_of_day for supplement {supplement.get('id')}: {e}")
+                parsed_supplement['times_of_day'] = {}
+        elif not parsed_supplement.get('times_of_day'):
+            parsed_supplement['times_of_day'] = {}
+        
+        # Parse interactions JSON string back to list
+        if parsed_supplement.get('interactions') and isinstance(parsed_supplement['interactions'], str):
+            try:
+                parsed_supplement['interactions'] = json.loads(parsed_supplement['interactions'])
+                logger.debug(f"Parsed interactions: {parsed_supplement['interactions']}")
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse interactions for supplement {supplement.get('id')}: {e}")
+                parsed_supplement['interactions'] = []
+        elif not parsed_supplement.get('interactions'):
+            parsed_supplement['interactions'] = []
+        
+        logger.debug(f"Final parsed supplement: {parsed_supplement.get('id', 'unknown')}")
+        return parsed_supplement
+    
     # User operations
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new user"""
@@ -211,8 +243,13 @@ class Database:
             if result.data:
                 created_supplement = result.data[0]
                 logger.info(f"Supplement created successfully: {created_supplement['id']}")
-                logger.debug(f"Created supplement data: {created_supplement}")
-                return created_supplement
+                logger.debug(f"Raw created supplement data: {created_supplement}")
+                
+                # Parse the response for API return (convert JSON strings back to objects)
+                parsed_supplement = self._parse_supplement_response(created_supplement)
+                logger.debug(f"Parsed supplement for API response: {parsed_supplement}")
+                
+                return parsed_supplement
             else:
                 logger.error("Failed to create supplement: No data returned")
                 raise Exception("Failed to create supplement")
@@ -232,23 +269,13 @@ class Database:
             supplements = result.data or []
             logger.debug(f"Found {len(supplements)} supplements for user {user_id}")
             
-            # Parse JSON fields
+            # Parse JSON fields for all supplements
+            parsed_supplements = []
             for supplement in supplements:
-                if supplement.get('times_of_day') and isinstance(supplement['times_of_day'], str):
-                    try:
-                        supplement['times_of_day'] = json.loads(supplement['times_of_day'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse times_of_day for supplement {supplement['id']}")
-                        supplement['times_of_day'] = {}
-                
-                if supplement.get('interactions') and isinstance(supplement['interactions'], str):
-                    try:
-                        supplement['interactions'] = json.loads(supplement['interactions'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse interactions for supplement {supplement['id']}")
-                        supplement['interactions'] = []
+                parsed_supplement = self._parse_supplement_response(supplement)
+                parsed_supplements.append(parsed_supplement)
             
-            return supplements
+            return parsed_supplements
             
         except Exception as e:
             logger.error(f"Get user supplements error: {str(e)}")
@@ -266,21 +293,8 @@ class Database:
                 logger.debug(f"Supplement found: {supplement['id']}")
                 
                 # Parse JSON fields
-                if supplement.get('times_of_day') and isinstance(supplement['times_of_day'], str):
-                    try:
-                        supplement['times_of_day'] = json.loads(supplement['times_of_day'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse times_of_day for supplement {supplement['id']}")
-                        supplement['times_of_day'] = {}
-                
-                if supplement.get('interactions') and isinstance(supplement['interactions'], str):
-                    try:
-                        supplement['interactions'] = json.loads(supplement['interactions'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse interactions for supplement {supplement['id']}")
-                        supplement['interactions'] = []
-                
-                return supplement
+                parsed_supplement = self._parse_supplement_response(supplement)
+                return parsed_supplement
             else:
                 logger.debug(f"No supplement found with ID: {supplement_id}")
                 return None
@@ -310,21 +324,8 @@ class Database:
                 logger.info(f"Supplement updated successfully: {supplement_id}")
                 
                 # Parse JSON fields for return
-                if updated_supplement.get('times_of_day') and isinstance(updated_supplement['times_of_day'], str):
-                    try:
-                        updated_supplement['times_of_day'] = json.loads(updated_supplement['times_of_day'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse times_of_day for updated supplement {supplement_id}")
-                        updated_supplement['times_of_day'] = {}
-                
-                if updated_supplement.get('interactions') and isinstance(updated_supplement['interactions'], str):
-                    try:
-                        updated_supplement['interactions'] = json.loads(updated_supplement['interactions'])
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse interactions for updated supplement {supplement_id}")
-                        updated_supplement['interactions'] = []
-                
-                return updated_supplement
+                parsed_supplement = self._parse_supplement_response(updated_supplement)
+                return parsed_supplement
             else:
                 logger.error(f"Failed to update supplement: {supplement_id}")
                 raise Exception("Failed to update supplement")
