@@ -34,6 +34,9 @@ class TokenService:
     async def store_verification_token(self, email: str, token: str) -> bool:
         """Store email verification token in database"""
         try:
+            # First, invalidate any existing verification tokens for this email
+            await self._invalidate_existing_tokens(email, "email_verification")
+            
             expires_at = datetime.utcnow() + timedelta(hours=24)  # 24 hour expiry
             
             token_data = {
@@ -49,7 +52,7 @@ class TokenService:
             result = self.db.supabase.table("verification_tokens").insert(token_data).execute()
             
             if result.data:
-                logger.info(f"Verification token stored for {email}")
+                logger.info(f"Verification token stored for {email} (previous tokens invalidated)")
                 return True
             else:
                 logger.error(f"Failed to store verification token for {email}")
@@ -80,7 +83,7 @@ class TokenService:
             result = self.db.supabase.table("verification_tokens").insert(token_data).execute()
             
             if result.data:
-                logger.info(f"Reset token stored for {email}")
+                logger.info(f"Reset token stored for {email} (previous tokens invalidated)")
                 return True
             else:
                 logger.error(f"Failed to store reset token for {email}")
@@ -128,8 +131,17 @@ class TokenService:
     async def _invalidate_existing_tokens(self, email: str, token_type: str):
         """Invalidate existing tokens of the same type for an email"""
         try:
-            self.db.supabase.table("verification_tokens").update({"used": True, "used_at": datetime.utcnow().isoformat()}).eq("email", email).eq("token_type", token_type).eq("used", False).execute()
-            logger.info(f"Invalidated existing {token_type} tokens for {email}")
+            # Mark all existing unused tokens as used
+            result = self.db.supabase.table("verification_tokens").update({
+                "used": True, 
+                "used_at": datetime.utcnow().isoformat()
+            }).eq("email", email).eq("token_type", token_type).eq("used", False).execute()
+            
+            if result.data:
+                logger.info(f"Invalidated {len(result.data)} existing {token_type} tokens for {email}")
+            else:
+                logger.info(f"No existing {token_type} tokens to invalidate for {email}")
+                
         except Exception as e:
             logger.error(f"Error invalidating existing tokens for {email}: {str(e)}")
     
@@ -138,6 +150,23 @@ class TokenService:
         try:
             current_time = datetime.utcnow().isoformat()
             result = self.db.supabase.table("verification_tokens").delete().lt("expires_at", current_time).execute()
-            logger.info(f"Cleaned up expired tokens")
+            
+            if result.data:
+                logger.info(f"Cleaned up {len(result.data)} expired tokens")
+            else:
+                logger.info("No expired tokens to clean up")
+                
         except Exception as e:
             logger.error(f"Error cleaning up expired tokens: {str(e)}")
+    
+    async def has_valid_verification_token(self, email: str) -> bool:
+        """Check if user has a valid (unused, non-expired) verification token"""
+        try:
+            current_time = datetime.utcnow().isoformat()
+            result = self.db.supabase.table("verification_tokens").select("id").eq("email", email).eq("token_type", "email_verification").eq("used", False).gt("expires_at", current_time).execute()
+            
+            return len(result.data) > 0
+            
+        except Exception as e:
+            logger.error(f"Error checking for valid verification token for {email}: {str(e)}")
+            return False

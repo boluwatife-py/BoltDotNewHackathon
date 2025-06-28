@@ -243,15 +243,50 @@ async def signup(
         # Check if user already exists
         existing_user = await auth_service.get_user_by_email(user_data.email)
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Email '{user_data.email}' is already registered."
-            )
+            # If user exists but email is not verified, send a new verification email
+            if not existing_user.get("email_verified", False):
+                logger.info(f"User {user_data.email} exists but email not verified. Sending new verification email.")
+                
+                # Generate new verification token (this will invalidate previous ones)
+                verification_token = token_service.generate_token(user_data.email, "email_verification")
+                
+                # Store verification token (this will invalidate previous ones)
+                token_stored = await token_service.store_verification_token(user_data.email, verification_token)
+                
+                if not token_stored:
+                    logger.error(f"Failed to store verification token for {user_data.email}")
+                
+                # Send verification email
+                email_result = await email_service.send_verification_email(
+                    user_data.email, 
+                    existing_user["name"], 
+                    verification_token
+                )
+                
+                # Generate tokens for the existing user
+                access_token = auth_service.create_access_token(existing_user["id"])
+                refresh_token = auth_service.create_refresh_token(existing_user["id"])
+
+                response_data = {
+                    "user": existing_user,
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "token_type": "bearer",
+                    "email_sent": email_result.success,
+                    "email_message": f"A new verification email has been sent to {user_data.email}. Please check your inbox."
+                }
+
+                return UserResponse(**response_data)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Email '{user_data.email}' is already registered and verified."
+                )
         
         # Create user (will be unverified initially)
         user = await auth_service.create_user(user_data)
         
-        # Generate verification token
+        # Generate verification token (this will invalidate any previous ones)
         verification_token = token_service.generate_token(user_data.email, "email_verification")
         
         # Store verification token
@@ -385,10 +420,10 @@ async def resend_verification_email(
                 detail="Email is already verified"
             )
         
-        # Generate new verification token
+        # Generate new verification token (this will invalidate previous ones)
         verification_token = token_service.generate_token(email, "email_verification")
         
-        # Store verification token
+        # Store verification token (this will invalidate previous ones)
         token_stored = await token_service.store_verification_token(email, verification_token)
         
         if not token_stored:
@@ -405,7 +440,7 @@ async def resend_verification_email(
         )
         
         if email_result.success:
-            logger.info(f"Verification email resent successfully to {email}")
+            logger.info(f"Verification email resent successfully to {email} (previous tokens invalidated)")
             return {
                 "message": "Verification email sent successfully",
                 "email_sent": True
@@ -434,6 +469,8 @@ async def login(
     """Authenticate user and return tokens"""
     try:
         auth_service = AuthService(db)
+        email_service = app.state.email_service
+        token_service = app.state.token_service
         
         # Authenticate user (this will check email verification)
         user = await auth_service.authenticate_user(
@@ -446,6 +483,43 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
+        
+        # Check if email is verified (skip for demo user)
+        if credentials.email != "demo@safedoser.com" and not user.get("email_verified", False):
+            logger.info(f"Login attempt with unverified email: {credentials.email}. Sending new verification email.")
+            
+            # Generate new verification token (this will invalidate previous ones)
+            verification_token = token_service.generate_token(credentials.email, "email_verification")
+            
+            # Store verification token (this will invalidate previous ones)
+            token_stored = await token_service.store_verification_token(credentials.email, verification_token)
+            
+            if token_stored:
+                # Send verification email
+                email_result = await email_service.send_verification_email(
+                    credentials.email, 
+                    user["name"], 
+                    verification_token
+                )
+                
+                if email_result.success:
+                    logger.info(f"New verification email sent to {credentials.email}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Email not verified. A new verification email has been sent to your inbox. Please verify your email before signing in."
+                    )
+                else:
+                    logger.error(f"Failed to send verification email to {credentials.email}: {email_result.message}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Email not verified. Please verify your email address before signing in. If you need a new verification email, please contact support."
+                    )
+            else:
+                logger.error(f"Failed to store verification token for {credentials.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Email not verified. Please verify your email address before signing in."
+                )
         
         # Generate tokens
         access_token = auth_service.create_access_token(user["id"])
@@ -488,10 +562,10 @@ async def forgot_password(
                 "reason": "User not found"
             }
         
-        # Generate reset token
+        # Generate reset token (this will invalidate previous ones)
         reset_token = token_service.generate_token(request_data.email, "password_reset")
         
-        # Store reset token
+        # Store reset token (this will invalidate previous ones)
         token_stored = await token_service.store_reset_token(request_data.email, reset_token)
         
         if not token_stored:
@@ -510,7 +584,7 @@ async def forgot_password(
         )
         
         if email_result.success:
-            logger.info(f"Password reset email sent successfully to {request_data.email}")
+            logger.info(f"Password reset email sent successfully to {request_data.email} (previous tokens invalidated)")
             return {
                 "message": "If the email exists in our system, a reset link has been sent",
                 "email_sent": True
