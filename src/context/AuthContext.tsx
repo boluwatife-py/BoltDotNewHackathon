@@ -98,6 +98,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error("Error checking auth status:", error);
 
+      // Check if it's an email verification error
+      if (
+        error.message.includes("Email not verified") ||
+        error.message.includes("verify your email")
+      ) {
+        // Clear tokens and show verification message
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        setUser(null);
+        console.warn("Email verification required. Please check your email and verify your account.");
+        return;
+      }
+
       // Check if it's a network/connection error
       if (
         error.message === "Failed to fetch" ||
@@ -187,6 +200,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
       }
 
+      if (
+        error.message.includes("Email not verified")
+      ) {
+        return {
+          success: false,
+          error: "Please verify your email address before signing in. Check your inbox for the verification link.",
+        };
+      }
+
       // Handle specific error cases
       if (
         error.message.includes("401") ||
@@ -195,15 +217,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return {
           success: false,
           error: "Invalid email or password. Please try again.",
-        };
-      }
-
-      if (
-        error.message.includes("Email not verified")
-      ) {
-        return {
-          success: false,
-          error: "Please verify your email address before signing in. Check your inbox for the verification link.",
         };
       }
 
