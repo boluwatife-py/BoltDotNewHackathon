@@ -31,17 +31,11 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<{
-    sent: boolean;
-    message?: string;
-  } | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
-  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   // Show notification function
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
@@ -129,13 +123,20 @@ const Signup: React.FC = () => {
     );
     
     if (result.success) {
-      // Show email verification notice instead of navigating directly
-      setShowEmailVerification(true);
-      setEmailStatus({
-        sent: result.emailSent || false,
-        message: result.emailMessage
-      });
       showNotification('success', 'Account created successfully!');
+      
+      // Navigate to login with verification info
+      setTimeout(() => {
+        navigate("/auth/login", {
+          state: {
+            message: "Account created successfully! Please check your email to verify your account.",
+            emailSent: result.emailSent,
+            emailMessage: result.emailMessage,
+            userEmail: formData.email,
+            showVerificationInfo: true
+          }
+        });
+      }, 1500);
     } else {
       setErrors(prev => ({ ...prev, general: result.error || "Signup failed" }));
       showNotification('error', result.error || "Signup failed");
@@ -201,147 +202,6 @@ const Signup: React.FC = () => {
       showNotification('error', errorMessage);
     }
   };
-
-  const resendVerificationEmail = async () => {
-    if (isResendingVerification) return;
-    
-    setIsResendingVerification(true);
-    
-    try {
-      const { data } = await authAPI.resendVerification(formData.email);
-      
-      if (data.email_sent) {
-        setEmailStatus(prev => ({
-          ...prev!,
-          sent: true,
-          message: "Verification email resent successfully!"
-        }));
-        showNotification('success', "Verification email resent successfully!");
-      } else {
-        showNotification('error', `Failed to send verification email: ${data.reason || "Unknown error"}`);
-      }
-    } catch (error: any) {
-      console.error("Failed to resend verification email:", error);
-      
-      let errorMessage = "Failed to send verification email";
-      if (error.message.includes("timeout")) {
-        errorMessage = "Request timed out. Please check your internet connection and try again.";
-      } else if (error.message.includes("network")) {
-        errorMessage = "Network error. Please check your internet connection and try again.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      showNotification('error', errorMessage);
-    } finally {
-      setIsResendingVerification(false);
-    }
-  };
-
-  if (showEmailVerification) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Notification */}
-        {notification.visible && (
-          <div className={`fixed top-4 left-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
-            notification.type === 'success' ? 'bg-green-500 text-white' :
-            notification.type === 'error' ? 'bg-red-500 text-white' :
-            'bg-blue-500 text-white'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {notification.type === 'success' && <CheckCircle className="w-5 h-5" />}
-                {notification.type === 'error' && <AlertCircle className="w-5 h-5" />}
-                <span className="text-sm font-medium">{notification.message}</span>
-              </div>
-              <button
-                onClick={() => setNotification(prev => ({ ...prev, visible: false }))}
-                className="text-white hover:text-gray-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Email Verification Notice */}
-        <div className="flex-1 flex flex-col justify-center px-6 py-8">
-          <div className="max-w-sm mx-auto w-full text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Mail className="w-8 h-8 text-blue-600" />
-            </div>
-            
-            <h2 className="text-[1.75rem] font-bold text-gray-900 mb-4">Check Your Email</h2>
-            
-            <p className="text-gray-600 mb-2">
-              Welcome to SafeDoser, {formData.name}! We've created your account. To get started, please verify your email address:
-            </p>
-            <p className="text-gray-900 font-medium mb-6">{formData.email}</p>
-            
-            {/* Email Status */}
-            {emailStatus?.sent ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <p className="text-green-800 text-sm font-medium">Email Sent Successfully!</p>
-                </div>
-                <p className="text-green-700 text-sm">
-                  Click the verification link in your email to activate your account and start using SafeDoser.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="w-4 h-4 text-yellow-600" />
-                  <p className="text-yellow-800 text-sm font-medium">Email Delivery Issue</p>
-                </div>
-                <p className="text-yellow-700 text-sm">
-                  {emailStatus?.message || "There was an issue sending the verification email. You can request a new one below."}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <button
-                onClick={() => navigate("/")}
-                className="block w-full px-6 py-3 bg-[var(--primary-color)] text-white rounded-xl font-medium text-center hover:bg-[var(--primary-dark)] transition-colors"
-              >
-                Continue to App
-              </button>
-              
-              <button
-                onClick={resendVerificationEmail}
-                disabled={isResendingVerification}
-                className={`block w-full px-6 py-3 rounded-xl font-medium text-center transition-colors ${
-                  isResendingVerification
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "border border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-[var(--primary-light)]"
-                }`}
-              >
-                {isResendingVerification ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
-                    Sending...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <RefreshCcw className="w-4 h-4" />
-                    Resend Verification Email
-                  </div>
-                )}
-              </button>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
-                Didn't receive the email? Check your spam folder or try resending.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

@@ -54,6 +54,21 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (location.state?.message) {
       showNotification("success", location.state.message);
+      
+      // If there's verification info from signup, show it
+      if (location.state?.showVerificationInfo && location.state?.userEmail) {
+        const emailStatus = location.state.emailSent;
+        
+        if (emailStatus) {
+          showNotification("info", "Verification email sent! Please check your inbox and click the verification link.");
+        } else {
+          showNotification("error", `Failed to send verification email: ${location.state.emailMessage || "Unknown error"}`);
+        }
+        
+        // Pre-fill email if provided
+        setFormData(prev => ({ ...prev, email: location.state.userEmail || "" }));
+      }
+      
       // Clear the message from navigation state
       window.history.replaceState({}, document.title);
     }
@@ -193,6 +208,14 @@ const Login: React.FC = () => {
       if (data.email_sent) {
         showNotification("success", "Verification email sent successfully! Please check your inbox.");
         setShowEmailVerificationPrompt(false);
+        
+        // Navigate back to login with success message
+        navigate("/auth/login", {
+          state: {
+            message: "Verification email sent! Please check your inbox and click the verification link.",
+            userEmail: verificationEmail
+          }
+        });
       } else {
         showNotification("error", `Failed to send verification email: ${data.reason || "Unknown error"}`);
       }

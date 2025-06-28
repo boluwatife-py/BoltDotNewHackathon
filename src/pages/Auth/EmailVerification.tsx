@@ -32,10 +32,13 @@ const EmailVerification: React.FC = () => {
       setStatus("success");
       setMessage("Your email has been verified successfully!");
       
-      // Redirect to login after 3 seconds
+      // Redirect to login after 3 seconds with success message
       setTimeout(() => {
         navigate("/auth/login", { 
-          state: { message: "Email verified! You can now sign in." }
+          state: { 
+            message: "Email verified successfully! You can now sign in with your account.",
+            userEmail: email
+          }
         });
       }, 3000);
     } catch (error: any) {
@@ -61,8 +64,13 @@ const EmailVerification: React.FC = () => {
     try {
       await authAPI.resendVerification(email);
       
-      setMessage("A new verification email has been sent to your inbox.");
-      setStatus("success");
+      // Navigate back to login with success message
+      navigate("/auth/login", {
+        state: {
+          message: "A new verification email has been sent! Please check your inbox.",
+          userEmail: email
+        }
+      });
     } catch (error: any) {
       console.error("Resend error:", error);
       setMessage(error.message || "Failed to resend verification email");
