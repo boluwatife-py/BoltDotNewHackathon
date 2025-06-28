@@ -240,9 +240,12 @@ async def signup(
     token_service = app.state.token_service
     
     try:
+        logger.info(f"Signup attempt for email: {user_data.email}")
+        
         # Check if user already exists
         existing_user = await auth_service.get_user_by_email(user_data.email)
         if existing_user:
+            logger.warning(f"Signup failed: Email already registered - {user_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Email '{user_data.email}' is already registered."
@@ -250,6 +253,7 @@ async def signup(
         
         # Create user (will be unverified initially)
         user = await auth_service.create_user(user_data)
+        logger.info(f"User created successfully: {user['id']}")
         
         # Generate verification token
         verification_token = token_service.generate_token(user_data.email, "email_verification")
@@ -305,6 +309,8 @@ async def verify_email(
 ):
     """Verify user email address"""
     try:
+        logger.info(f"Email verification attempt for: {verification_data.email}")
+        
         token_service = app.state.token_service
         auth_service = AuthService(db)
         
@@ -316,6 +322,7 @@ async def verify_email(
         )
         
         if not is_valid:
+            logger.warning(f"Invalid verification token for {verification_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired verification token"
@@ -325,6 +332,7 @@ async def verify_email(
         user = await auth_service.get_user_by_email(verification_data.email)
         
         if not user:
+            logger.error(f"User not found during verification: {verification_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
@@ -366,6 +374,8 @@ async def resend_verification_email(
                 detail="Email is required"
             )
         
+        logger.info(f"Resend verification request for: {email}")
+        
         auth_service = AuthService(db)
         email_service = app.state.email_service
         token_service = app.state.token_service
@@ -373,6 +383,7 @@ async def resend_verification_email(
         # Check if user exists
         user = await auth_service.get_user_by_email(email)
         if not user:
+            logger.warning(f"Resend verification failed: User not found - {email}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
@@ -380,6 +391,7 @@ async def resend_verification_email(
         
         # Check if already verified
         if user.get("email_verified", False):
+            logger.warning(f"Resend verification failed: Email already verified - {email}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email is already verified"
@@ -392,6 +404,7 @@ async def resend_verification_email(
         token_stored = await token_service.store_verification_token(email, verification_token)
         
         if not token_stored:
+            logger.error(f"Failed to store verification token for {email}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to generate verification token"
@@ -433,6 +446,8 @@ async def login(
 ):
     """Authenticate user and return tokens"""
     try:
+        logger.info(f"Login attempt for email: {credentials.email}")
+        
         auth_service = AuthService(db)
         
         # Authenticate user (this will check email verification)
@@ -442,6 +457,7 @@ async def login(
         )
         
         if not user:
+            logger.warning(f"Login failed: Invalid credentials for {credentials.email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
@@ -450,6 +466,8 @@ async def login(
         # Generate tokens
         access_token = auth_service.create_access_token(user["id"])
         refresh_token = auth_service.create_refresh_token(user["id"])
+        
+        logger.info(f"Login successful for user: {user['id']}")
         
         return UserResponse(
             user=user,
@@ -474,6 +492,8 @@ async def forgot_password(
 ):
     """Send password reset email"""
     try:
+        logger.info(f"Password reset request for: {request_data.email}")
+        
         auth_service = AuthService(db)
         email_service = app.state.email_service
         token_service = app.state.token_service
@@ -481,6 +501,7 @@ async def forgot_password(
         # Check if user exists
         user = await auth_service.get_user_by_email(request_data.email)
         if not user:
+            logger.warning(f"Password reset failed: User not found - {request_data.email}")
             # For security, always return success message
             return {
                 "message": "If the email exists in our system, a reset link has been sent",
@@ -540,6 +561,8 @@ async def reset_password(
 ):
     """Reset user password with token"""
     try:
+        logger.info(f"Password reset confirmation for: {reset_data.email}")
+        
         auth_service = AuthService(db)
         token_service = app.state.token_service
         
@@ -551,6 +574,7 @@ async def reset_password(
         )
         
         if not is_valid:
+            logger.warning(f"Invalid reset token for {reset_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired reset token"
@@ -559,6 +583,7 @@ async def reset_password(
         # Get user
         user = await auth_service.get_user_by_email(reset_data.email)
         if not user:
+            logger.error(f"User not found during password reset: {reset_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
@@ -654,7 +679,9 @@ async def get_supplements(
 ):
     """Get user's supplements"""
     try:
+        logger.debug(f"Getting supplements for user: {current_user['id']}")
         supplements = await db.get_user_supplements(current_user["id"])
+        logger.debug(f"Found {len(supplements)} supplements")
         return supplements
         
     except Exception as e:
@@ -672,17 +699,23 @@ async def create_supplement(
 ):
     """Create a new supplement"""
     try:
+        logger.info(f"Creating supplement for user: {current_user['id']}")
+        logger.debug(f"Supplement data received: {supplement_data.dict()}")
+        
         supplement = await db.create_supplement(
             current_user["id"], 
             supplement_data.dict()
         )
+        
+        logger.info(f"Supplement created successfully: {supplement['id']}")
         return supplement
         
     except Exception as e:
         logger.error(f"Create supplement error: {str(e)}")
+        logger.error(f"Supplement data that failed: {supplement_data.dict()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create supplement"
+            detail=f"Failed to create supplement: {str(e)}"
         )
 
 @app.put("/supplements/{supplement_id}", response_model=SupplementResponse)
@@ -694,9 +727,13 @@ async def update_supplement(
 ):
     """Update a supplement"""
     try:
+        logger.info(f"Updating supplement {supplement_id} for user: {current_user['id']}")
+        logger.debug(f"Update data: {supplement_data.dict(exclude_unset=True)}")
+        
         # Verify supplement belongs to user
         supplement = await db.get_supplement_by_id(supplement_id)
         if not supplement or supplement["user_id"] != current_user["id"]:
+            logger.warning(f"Supplement not found or access denied: {supplement_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Supplement not found"
@@ -707,6 +744,8 @@ async def update_supplement(
             supplement_id, 
             supplement_data.dict(exclude_unset=True)
         )
+        
+        logger.info(f"Supplement updated successfully: {supplement_id}")
         return updated_supplement
         
     except HTTPException:
@@ -726,9 +765,12 @@ async def delete_supplement(
 ):
     """Delete a supplement"""
     try:
+        logger.info(f"Deleting supplement {supplement_id} for user: {current_user['id']}")
+        
         # Verify supplement belongs to user
         supplement = await db.get_supplement_by_id(supplement_id)
         if not supplement or supplement["user_id"] != current_user["id"]:
+            logger.warning(f"Supplement not found or access denied: {supplement_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Supplement not found"
@@ -736,6 +778,8 @@ async def delete_supplement(
         
         # Delete supplement
         await db.delete_supplement(supplement_id)
+        
+        logger.info(f"Supplement deleted successfully: {supplement_id}")
         return {"message": "Supplement deleted successfully"}
         
     except HTTPException:
@@ -756,6 +800,8 @@ async def send_chat_message(
 ):
     """Send a chat message and get AI response"""
     try:
+        logger.debug(f"Chat message from user {current_user['id']}: {message_data.message[:50]}...")
+        
         ai_service = app.state.ai_service
         
         # Get user's supplements for context
@@ -795,6 +841,7 @@ async def send_chat_message(
             context
         )
         
+        logger.debug(f"Chat response generated for user {current_user['id']}")
         return ChatResponse(reply=ai_response)
         
     except Exception as e:
@@ -819,6 +866,7 @@ async def get_chat_history(
 ):
     """Get chat history"""
     try:
+        logger.debug(f"Getting chat history for user {current_user['id']}, limit: {limit}")
         messages = await db.get_chat_history(current_user["id"], limit)
         return ChatHistoryResponse(messages=messages)
         
@@ -836,6 +884,7 @@ async def clear_chat_history(
 ):
     """Clear chat history"""
     try:
+        logger.info(f"Clearing chat history for user: {current_user['id']}")
         await db.clear_chat_history(current_user["id"])
         return {"message": "Chat history cleared successfully"}
         
