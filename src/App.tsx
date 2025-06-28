@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TabProvider } from "./context/TabContext";
 import { BottomSheetProvider } from "./context/BottomSheetContext";
@@ -37,22 +42,7 @@ import NotFound from "./pages/NotFound";
 
 // App Routes Component
 function AppRoutes() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[var(--border-dark)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex flex-row gap-2">
-            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce"></div>
-            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.3s]"></div>
-            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.5s]"></div>
-          </div>
-          <p className="text-[var(--text-secondary)] text-sm">Loading SafeDoser...</p>
-        </div>
-      </div>
-    );
-  }
+  const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
     return (
@@ -76,76 +66,118 @@ function AppRoutes() {
         <UserProvider>
           <Layout>
             <Routes>
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan" element={
-                <ProtectedRoute>
-                  <Scan />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/manual" element={
-                <ProtectedRoute>
-                  <AddManually />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/add/done" element={
-                <ProtectedRoute>
-                  <SupplementDone />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/byscan" element={
-                <ProtectedRoute>
-                  <ByScan />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/result" element={
-                <ProtectedRoute>
-                  <ScanResult />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/scan-failed" element={
-                <ProtectedRoute>
-                  <ScanFailed />
-                </ProtectedRoute>
-              } />
-              <Route path="/scan/import" element={
-                <ProtectedRoute>
-                  <Cvs />
-                </ProtectedRoute>
-              } />
-              <Route path="/scheduler" element={
-                <ProtectedRoute>
-                  <Scheduler />
-                </ProtectedRoute>
-              } />
-              <Route path="/chatbot" element={
-                <ProtectedRoute>
-                  <Chatbot />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings/supplement-list" element={
-                <ProtectedRoute>
-                  <SupplementList />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings/app-info" element={
-                <ProtectedRoute>
-                  <AppInfo />
-                </ProtectedRoute>
-              } />
-              <Route path="/settings/privacy-data" element={
-                <ProtectedRoute>
-                  <DataPrivacy />
-                </ProtectedRoute>
-              } />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan"
+                element={
+                  <ProtectedRoute>
+                    <Scan />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/manual"
+                element={
+                  <ProtectedRoute>
+                    <AddManually />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/add/done"
+                element={
+                  <ProtectedRoute>
+                    <SupplementDone />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/byscan"
+                element={
+                  <ProtectedRoute>
+                    <ByScan />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/result"
+                element={
+                  <ProtectedRoute>
+                    <ScanResult />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/scan-failed"
+                element={
+                  <ProtectedRoute>
+                    <ScanFailed />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scan/import"
+                element={
+                  <ProtectedRoute>
+                    <Cvs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scheduler"
+                element={
+                  <ProtectedRoute>
+                    <Scheduler />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chatbot"
+                element={
+                  <ProtectedRoute>
+                    <Chatbot />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/supplement-list"
+                element={
+                  <ProtectedRoute>
+                    <SupplementList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/app-info"
+                element={
+                  <ProtectedRoute>
+                    <AppInfo />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/privacy-data"
+                element={
+                  <ProtectedRoute>
+                    <DataPrivacy />
+                  </ProtectedRoute>
+                }
+              />
               {/* Legal pages accessible to authenticated users */}
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
