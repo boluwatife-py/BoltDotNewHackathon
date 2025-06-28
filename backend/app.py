@@ -151,6 +151,7 @@ async def google_oauth(request: Request):
         oauth_service = app.state.oauth_service
         
         if not oauth_service.is_configured("google"):
+            logger.error("Google OAuth not configured")
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
@@ -158,6 +159,7 @@ async def google_oauth(request: Request):
         
         # Generate OAuth URL
         auth_url, state = oauth_service.get_google_auth_url()
+        logger.info(f"Redirecting to Google OAuth with state: {state[:8]}...")
         
         # Redirect to Google OAuth
         return RedirectResponse(url=auth_url, status_code=302)
@@ -165,7 +167,7 @@ async def google_oauth(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Google OAuth error: {str(e)}")
+        logger.error(f"Google OAuth error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="OAuth initialization failed"
@@ -177,6 +179,8 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
     try:
         oauth_service = app.state.oauth_service
         
+        logger.info(f"OAuth callback received - code: {'present' if code else 'missing'}, state: {state[:8] if state else 'missing'}, error: {error}")
+        
         if error:
             logger.warning(f"Google OAuth error: {error}")
             redirect_url = oauth_service.get_frontend_redirect_url(
@@ -187,6 +191,7 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
             return RedirectResponse(url=redirect_url, status_code=302)
         
         if not code or not state:
+            logger.error("Missing required OAuth parameters")
             redirect_url = oauth_service.get_frontend_redirect_url(
                 success=False, 
                 error="missing_parameters", 
@@ -203,10 +208,12 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
             access_token=result['access_token'],
             refresh_token=result['refresh_token']
         )
+        
+        logger.info(f"OAuth success, redirecting to: {redirect_url}")
         return RedirectResponse(url=redirect_url, status_code=302)
         
     except Exception as e:
-        logger.error(f"Google OAuth callback error: {str(e)}")
+        logger.error(f"Google OAuth callback error: {str(e)}", exc_info=True)
         oauth_service = app.state.oauth_service
         redirect_url = oauth_service.get_frontend_redirect_url(
             success=False, 
