@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config/api";
 import InputField from "../../components/UI/Input";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
 
