@@ -19,7 +19,6 @@ const Login: React.FC = () => {
     general: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [notification, setNotification] = useState<{
     type: "success" | "error" | "info";
     message: string;
@@ -43,7 +42,6 @@ const Login: React.FC = () => {
   // Check for success message from navigation state
   useEffect(() => {
     if (location.state?.message) {
-      setSuccessMessage(location.state.message);
       showNotification("success", location.state.message);
       // Clear the message from navigation state
       window.history.replaceState({}, document.title);
@@ -209,19 +207,6 @@ const Login: React.FC = () => {
             className="w-40 h-auto"
           />
         </div>
-
-        {/* Success Message */}
-        {successMessage && (
-          <div className="w-full max-w-sm bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <p className="text-green-800 text-sm font-medium">
-                {successMessage}
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="w-full max-w-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
