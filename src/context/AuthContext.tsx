@@ -103,7 +103,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
         error.message.includes("network") ||
-        error.message.includes("ECONNREFUSED")
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("timeout")
       ) {
         setConnectionError(true);
         console.warn(
@@ -175,7 +176,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
-        error.message.includes("network")
+        error.message.includes("network") ||
+        error.message.includes("timeout")
       ) {
         setConnectionError(true);
         return {
@@ -283,7 +285,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
-        error.message.includes("network")
+        error.message.includes("network") ||
+        error.message.includes("timeout")
       ) {
         setConnectionError(true);
         return {
@@ -361,7 +364,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
-        error.message.includes("network")
+        error.message.includes("network") ||
+        error.message.includes("timeout")
       ) {
         setConnectionError(true);
         return {
@@ -415,7 +419,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
-        error.message.includes("network")
+        error.message.includes("network") ||
+        error.message.includes("timeout")
       ) {
         setConnectionError(true);
         return {
