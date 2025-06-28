@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { API_BASE_URL } from "../../config/api";
+import { API_BASE_URL, authAPI } from "../../config/api";
 import InputField from "../../components/UI/Input";
-import { Eye, EyeOff, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, AlertCircle, X, Mail, RefreshCcw } from "lucide-react";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +25,9 @@ const Login: React.FC = () => {
     visible: boolean;
   }>({ type: "info", message: "", visible: false });
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
+  const [showEmailVerificationPrompt, setShowEmailVerificationPrompt] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   // Show notification function
   const showNotification = (
@@ -130,11 +133,18 @@ const Login: React.FC = () => {
       showNotification("success", "Successfully signed in!");
       // Navigation will be handled by the useEffect above
     } else {
-      setErrors((prev) => ({
-        ...prev,
-        general: result.error || "Login failed",
-      }));
-      showNotification("error", result.error || "Login failed");
+      // Check if it's an email verification error
+      if (result.error?.includes("verify your email") || result.error?.includes("Email not verified")) {
+        setVerificationEmail(formData.email);
+        setShowEmailVerificationPrompt(true);
+        setErrors((prev) => ({ ...prev, general: "" }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: result.error || "Login failed",
+        }));
+        showNotification("error", result.error || "Login failed");
+      }
     }
   };
 
@@ -169,6 +179,38 @@ const Login: React.FC = () => {
         general: errorMessage,
       }));
       showNotification("error", errorMessage);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail || isResendingVerification) return;
+
+    setIsResendingVerification(true);
+    
+    try {
+      const { data } = await authAPI.resendVerification(verificationEmail);
+      
+      if (data.email_sent) {
+        showNotification("success", "Verification email sent successfully! Please check your inbox.");
+        setShowEmailVerificationPrompt(false);
+      } else {
+        showNotification("error", `Failed to send verification email: ${data.reason || "Unknown error"}`);
+      }
+    } catch (error: any) {
+      console.error("Resend verification error:", error);
+      
+      let errorMessage = "Failed to send verification email";
+      if (error.message.includes("timeout")) {
+        errorMessage = "Request timed out. Please check your internet connection and try again.";
+      } else if (error.message.includes("network")) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification("error", errorMessage);
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -221,6 +263,63 @@ const Login: React.FC = () => {
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Email Verification Prompt */}
+      {showEmailVerificationPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <div className="text-center mb-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                Email Verification Required
+              </h3>
+              <p className="text-[var(--text-secondary)] text-sm">
+                Please verify your email address to continue. We'll send a new verification link to:
+              </p>
+              <p className="text-[var(--text-primary)] font-medium mt-2">{verificationEmail}</p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
+                className={`w-full px-4 py-3 rounded-xl font-medium text-center transition-colors ${
+                  isResendingVerification
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[var(--primary-color)] text-white hover:bg-[var(--primary-dark)]"
+                }`}
+              >
+                {isResendingVerification ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCcw className="w-4 h-4" />
+                    Send Verification Email
+                  </div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setShowEmailVerificationPrompt(false)}
+                className="w-full px-4 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-xs text-[var(--text-secondary)]">
+                Check your spam folder if you don't see the email
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { authAPI } from "../../config/api";
 import InputField from "../../components/UI/Input";
 import Checkbox from "../../components/UI/Checkbox";
-import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle, X, RefreshCcw } from "lucide-react";
 import { API_BASE_URL } from "../../config/api";
 
 const Signup: React.FC = () => {
@@ -40,6 +41,7 @@ const Signup: React.FC = () => {
     message: string;
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   // Show notification function
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
@@ -201,20 +203,14 @@ const Signup: React.FC = () => {
   };
 
   const resendVerificationEmail = async () => {
+    if (isResendingVerification) return;
+    
+    setIsResendingVerification(true);
+    
     try {
-      if (!API_BASE_URL) {
-        throw new Error("API_BASE_URL is not defined");
-      }
+      const { data } = await authAPI.resendVerification(formData.email);
       
-      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (response.ok) {
+      if (data.email_sent) {
         setEmailStatus(prev => ({
           ...prev!,
           sent: true,
@@ -222,12 +218,23 @@ const Signup: React.FC = () => {
         }));
         showNotification('success', "Verification email resent successfully!");
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to resend verification email");
+        showNotification('error', `Failed to send verification email: ${data.reason || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("Failed to resend verification email:", error);
-      showNotification('error', error.message || "Failed to resend verification email");
+      
+      let errorMessage = "Failed to send verification email";
+      if (error.message.includes("timeout")) {
+        errorMessage = "Request timed out. Please check your internet connection and try again.";
+      } else if (error.message.includes("network")) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification('error', errorMessage);
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -267,7 +274,7 @@ const Signup: React.FC = () => {
             <h2 className="text-[1.75rem] font-bold text-gray-900 mb-4">Check Your Email</h2>
             
             <p className="text-gray-600 mb-2">
-              Welcome to SafeDoser, {formData.name}! We've sent a verification email to:
+              Welcome to SafeDoser, {formData.name}! We've created your account. To get started, please verify your email address:
             </p>
             <p className="text-gray-900 font-medium mb-6">{formData.email}</p>
             
@@ -289,7 +296,7 @@ const Signup: React.FC = () => {
                   <p className="text-yellow-800 text-sm font-medium">Email Delivery Issue</p>
                 </div>
                 <p className="text-yellow-700 text-sm">
-                  {emailStatus?.message || "There was an issue sending the verification email. You can try resending it below."}
+                  {emailStatus?.message || "There was an issue sending the verification email. You can request a new one below."}
                 </p>
               </div>
             )}
@@ -304,9 +311,24 @@ const Signup: React.FC = () => {
               
               <button
                 onClick={resendVerificationEmail}
-                className="block w-full px-6 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
+                disabled={isResendingVerification}
+                className={`block w-full px-6 py-3 rounded-xl font-medium text-center transition-colors ${
+                  isResendingVerification
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "border border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-[var(--primary-light)]"
+                }`}
               >
-                Resend Verification Email
+                {isResendingVerification ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCcw className="w-4 h-4" />
+                    Resend Verification Email
+                  </div>
+                )}
               </button>
             </div>
 
@@ -359,6 +381,13 @@ const Signup: React.FC = () => {
 
         <div className="w-full max-w-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* General Error */}
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
             {/* Avatar Upload */}
             <div className="flex flex-col items-center mb-4">
               <div className="relative">
