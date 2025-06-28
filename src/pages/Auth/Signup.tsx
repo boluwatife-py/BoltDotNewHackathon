@@ -359,16 +359,6 @@ const Signup: React.FC = () => {
 
         <div className="w-full max-w-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* General Error */}
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
-                  <p className="text-red-600 text-sm">{errors.general}</p>
-                </div>
-              </div>
-            )}
-
             {/* Avatar Upload */}
             <div className="flex flex-col items-center mb-4">
               <div className="relative">
