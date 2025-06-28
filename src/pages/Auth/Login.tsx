@@ -29,9 +29,12 @@ const Login: React.FC = () => {
   // Show notification function
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message, visible: true });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, visible: false }));
-    }, 5000);
+    // Don't auto-hide error notifications
+    if (type !== 'error') {
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, visible: false }));
+      }, 5000);
+    }
   };
 
   // Check for success message from navigation state
@@ -123,6 +126,11 @@ const Login: React.FC = () => {
     }
     if (errors.general) {
       setErrors(prev => ({ ...prev, general: "" }));
+    }
+    
+    // Also hide any error notifications when user starts typing
+    if (notification.type === 'error' && notification.visible) {
+      setNotification(prev => ({ ...prev, visible: false }));
     }
   };
 
@@ -263,14 +271,14 @@ const Login: React.FC = () => {
                 disabled={isLoading}
                 className={`w-full px-6 py-3 rounded-xl font-medium text-center transition-colors ${
                   isLoading
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    ? "bg-[var(--primary-color)] opacity-70 text-white cursor-not-allowed"
                     : "bg-[var(--primary-color)] text-white hover:bg-[var(--primary-dark)]"
                 }`}
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Signing in...
+                    <span>Signing in...</span>
                   </div>
                 ) : (
                   "Log in"
