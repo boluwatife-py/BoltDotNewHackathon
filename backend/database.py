@@ -29,7 +29,9 @@ class Database:
     async def initialize(self):
         """Initialize database connection"""
         try:
-            self.supabase = create_client(self.supabase_url, self.supabase_key)
+            if self.supabase_url is None or self.supabase_key is None:
+                raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set")
+            self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             logger.info("Database initialized successfully")
         except Exception as e:
             logger.error(f"Database initialization failed: {str(e)}")
@@ -107,43 +109,15 @@ class Database:
         logger.debug(f"Final prepared supplement data: {prepared_data}")
         return prepared_data
     
-    def _parse_supplement_response(self, supplement: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse supplement data from database response for API response"""
-        logger.debug(f"Parsing supplement response: {supplement.get('id', 'unknown')}")
-        
-        # Create a copy to avoid modifying the original
-        parsed_supplement = supplement.copy()
-        
-        # Parse times_of_day JSON string back to dict
-        if parsed_supplement.get('times_of_day') and isinstance(parsed_supplement['times_of_day'], str):
-            try:
-                parsed_supplement['times_of_day'] = json.loads(parsed_supplement['times_of_day'])
-                logger.debug(f"Parsed times_of_day: {parsed_supplement['times_of_day']}")
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse times_of_day for supplement {supplement.get('id')}: {e}")
-                parsed_supplement['times_of_day'] = {}
-        elif not parsed_supplement.get('times_of_day'):
-            parsed_supplement['times_of_day'] = {}
-        
-        # Parse interactions JSON string back to list
-        if parsed_supplement.get('interactions') and isinstance(parsed_supplement['interactions'], str):
-            try:
-                parsed_supplement['interactions'] = json.loads(parsed_supplement['interactions'])
-                logger.debug(f"Parsed interactions: {parsed_supplement['interactions']}")
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse interactions for supplement {supplement.get('id')}: {e}")
-                parsed_supplement['interactions'] = []
-        elif not parsed_supplement.get('interactions'):
-            parsed_supplement['interactions'] = []
-        
-        logger.debug(f"Final parsed supplement: {parsed_supplement.get('id', 'unknown')}")
-        return parsed_supplement
-    
     # User operations
     async def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new user"""
         try:
             logger.debug(f"Creating user with data: {user_data}")
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             # Serialize the data
             serialized_data = self._serialize_for_json(user_data)
@@ -165,6 +139,10 @@ class Database:
         """Get user by email"""
         try:
             logger.debug(f"Getting user by email: {email}")
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("users").select("*").eq("email", email).execute()
             
@@ -183,6 +161,10 @@ class Database:
         """Get user by ID"""
         try:
             logger.debug(f"Getting user by ID: {user_id}")
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("users").select("*").eq("id", user_id).execute()
             
@@ -204,6 +186,10 @@ class Database:
             
             # Add updated_at timestamp
             update_data["updated_at"] = datetime.utcnow().isoformat()
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             # Serialize the data
             serialized_data = self._serialize_for_json(update_data)
@@ -233,6 +219,10 @@ class Database:
             supplement_data["created_at"] = datetime.utcnow().isoformat()
             supplement_data["updated_at"] = datetime.utcnow().isoformat()
             
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
             # Prepare data for database insertion
             prepared_data = self._prepare_supplement_data(supplement_data)
             
@@ -243,13 +233,8 @@ class Database:
             if result.data:
                 created_supplement = result.data[0]
                 logger.info(f"Supplement created successfully: {created_supplement['id']}")
-                logger.debug(f"Raw created supplement data: {created_supplement}")
-                
-                # Parse the response for API return (convert JSON strings back to objects)
-                parsed_supplement = self._parse_supplement_response(created_supplement)
-                logger.debug(f"Parsed supplement for API response: {parsed_supplement}")
-                
-                return parsed_supplement
+                logger.debug(f"Created supplement data: {created_supplement}")
+                return created_supplement
             else:
                 logger.error("Failed to create supplement: No data returned")
                 raise Exception("Failed to create supplement")
@@ -264,18 +249,32 @@ class Database:
         try:
             logger.debug(f"Getting supplements for user: {user_id}")
             
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
             result = self.supabase.table("supplements").select("*").eq("user_id", user_id).order("created_at", desc=False).execute()
             
             supplements = result.data or []
             logger.debug(f"Found {len(supplements)} supplements for user {user_id}")
             
-            # Parse JSON fields for all supplements
-            parsed_supplements = []
+            # Parse JSON fields
             for supplement in supplements:
-                parsed_supplement = self._parse_supplement_response(supplement)
-                parsed_supplements.append(parsed_supplement)
+                if supplement.get('times_of_day') and isinstance(supplement['times_of_day'], str):
+                    try:
+                        supplement['times_of_day'] = json.loads(supplement['times_of_day'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse times_of_day for supplement {supplement['id']}")
+                        supplement['times_of_day'] = {}
+                
+                if supplement.get('interactions') and isinstance(supplement['interactions'], str):
+                    try:
+                        supplement['interactions'] = json.loads(supplement['interactions'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse interactions for supplement {supplement['id']}")
+                        supplement['interactions'] = []
             
-            return parsed_supplements
+            return supplements
             
         except Exception as e:
             logger.error(f"Get user supplements error: {str(e)}")
@@ -285,6 +284,10 @@ class Database:
         """Get supplement by ID"""
         try:
             logger.debug(f"Getting supplement by ID: {supplement_id}")
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("supplements").select("*").eq("id", supplement_id).execute()
             
@@ -293,8 +296,21 @@ class Database:
                 logger.debug(f"Supplement found: {supplement['id']}")
                 
                 # Parse JSON fields
-                parsed_supplement = self._parse_supplement_response(supplement)
-                return parsed_supplement
+                if supplement.get('times_of_day') and isinstance(supplement['times_of_day'], str):
+                    try:
+                        supplement['times_of_day'] = json.loads(supplement['times_of_day'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse times_of_day for supplement {supplement['id']}")
+                        supplement['times_of_day'] = {}
+                
+                if supplement.get('interactions') and isinstance(supplement['interactions'], str):
+                    try:
+                        supplement['interactions'] = json.loads(supplement['interactions'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse interactions for supplement {supplement['id']}")
+                        supplement['interactions'] = []
+                
+                return supplement
             else:
                 logger.debug(f"No supplement found with ID: {supplement_id}")
                 return None
@@ -312,6 +328,10 @@ class Database:
             # Add updated_at timestamp
             update_data["updated_at"] = datetime.utcnow().isoformat()
             
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
             # Prepare data for database update
             prepared_data = self._prepare_supplement_data(update_data)
             
@@ -324,8 +344,21 @@ class Database:
                 logger.info(f"Supplement updated successfully: {supplement_id}")
                 
                 # Parse JSON fields for return
-                parsed_supplement = self._parse_supplement_response(updated_supplement)
-                return parsed_supplement
+                if updated_supplement.get('times_of_day') and isinstance(updated_supplement['times_of_day'], str):
+                    try:
+                        updated_supplement['times_of_day'] = json.loads(updated_supplement['times_of_day'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse times_of_day for updated supplement {supplement_id}")
+                        updated_supplement['times_of_day'] = {}
+                
+                if updated_supplement.get('interactions') and isinstance(updated_supplement['interactions'], str):
+                    try:
+                        updated_supplement['interactions'] = json.loads(updated_supplement['interactions'])
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse interactions for updated supplement {supplement_id}")
+                        updated_supplement['interactions'] = []
+                
+                return updated_supplement
             else:
                 logger.error(f"Failed to update supplement: {supplement_id}")
                 raise Exception("Failed to update supplement")
@@ -339,6 +372,10 @@ class Database:
         """Delete a supplement"""
         try:
             logger.info(f"Deleting supplement: {supplement_id}")
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("supplements").delete().eq("id", supplement_id).execute()
             
@@ -354,7 +391,7 @@ class Database:
             raise
     
     # Chat operations
-    async def save_chat_message(self, user_id: str, sender: str, message: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def save_chat_message(self, user_id: str, sender: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Save a chat message"""
         try:
             logger.debug(f"Saving chat message for user {user_id}, sender: {sender}")
@@ -366,6 +403,10 @@ class Database:
                 "context": json.dumps(context) if context else None,
                 "timestamp": datetime.utcnow().isoformat()
             }
+
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("chat_messages").insert(message_data).execute()
             
@@ -384,6 +425,10 @@ class Database:
         """Get chat history for a user"""
         try:
             logger.debug(f"Getting chat history for user {user_id}, limit: {limit}")
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             
             result = self.supabase.table("chat_messages").select("*").eq("user_id", user_id).order("timestamp", desc=True).limit(limit).execute()
             
@@ -413,6 +458,9 @@ class Database:
         try:
             logger.info(f"Clearing chat history for user: {user_id}")
             
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
             result = self.supabase.table("chat_messages").delete().eq("user_id", user_id).execute()
             
             deleted_count = len(result.data) if result.data else 0
