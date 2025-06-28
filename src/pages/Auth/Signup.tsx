@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import InputField from "../../components/UI/Input";
 import Checkbox from "../../components/UI/Checkbox";
 import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { API_BASE_URL } from "../../config/api";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -159,8 +160,7 @@ const Signup: React.FC = () => {
   const handleSocialLogin = async (provider: 'google') => {
     try {
       // Redirect to backend OAuth endpoint
-      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com';
-      window.location.href = `${backendUrl}/auth/${provider}`;
+      window.location.href = `${API_BASE_URL}/auth/${provider}`;
     } catch (error) {
       console.error(`${provider} login error:`, error);
       setErrors(prev => ({ 
@@ -172,7 +172,7 @@ const Signup: React.FC = () => {
 
   const resendVerificationEmail = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com'}/auth/resend-verification`, {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

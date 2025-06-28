@@ -33,7 +33,7 @@ class OAuthService:
         # Google OAuth configuration
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
         
         # Frontend URL for redirects
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -122,7 +122,7 @@ class OAuthService:
         }
         
         auth_url = f"{self.google_auth_url}?{urlencode(params)}"
-        print(auth_url)
+        print(f"Generated Google OAuth URL: {auth_url}")
         return auth_url, state
     
     async def handle_google_callback(self, code: str, state: str) -> Dict[str, Any]:
@@ -154,7 +154,7 @@ class OAuthService:
             # Create or get user
             user_data = {
                 "email": user_info["email"],
-                "name": user_info["name"],
+                "name": user_info.get("name", user_info.get("given_name", "")),
                 "avatar_url": user_info.get("picture"),
                 "email_verified": user_info.get("verified_email", True),
                 "oauth_provider": "google",
@@ -233,7 +233,13 @@ class OAuthService:
     def get_frontend_redirect_url(self, success: bool, **params) -> str:
         """Generate frontend redirect URL with parameters"""
         if success:
-            # Redirect to main app
+            # Redirect to main app with tokens
+            if 'access_token' in params and 'refresh_token' in params:
+                query_params = urlencode({
+                    'access_token': params['access_token'],
+                    'refresh_token': params['refresh_token']
+                })
+                return f"{self.frontend_url}/?{query_params}"
             return f"{self.frontend_url}/"
         else:
             # Redirect to login with error

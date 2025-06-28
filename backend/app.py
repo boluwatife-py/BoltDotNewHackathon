@@ -104,10 +104,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*webcontainer-api.io",
         "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:8080",
         "https://safedoser.netlify.app",
-        "https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--cb7c0bca.local-credentialless.webcontainer-api.io",
+        "*webcontainer-api.io",
+        "*local-credentialless.webcontainer-api.io",
         # Add your frontend URLs here
     ],
     allow_credentials=True,
@@ -204,8 +206,11 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
         result = await oauth_service.handle_google_callback(code, state)
         
         # Create success redirect with tokens
-        # In a real app, you might want to set secure HTTP-only cookies instead
-        redirect_url = f"{oauth_service.frontend_url}/?access_token={result['access_token']}&refresh_token={result['refresh_token']}"
+        redirect_url = oauth_service.get_frontend_redirect_url(
+            success=True,
+            access_token=result['access_token'],
+            refresh_token=result['refresh_token']
+        )
         return RedirectResponse(url=redirect_url, status_code=302)
         
     except Exception as e:

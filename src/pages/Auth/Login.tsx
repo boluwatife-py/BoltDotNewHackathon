@@ -104,7 +104,7 @@ const Login: React.FC = () => {
   const handleSocialLogin = async (provider: 'google') => {
     try {
       // Redirect to backend OAuth endpoint
-      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com';
+      const backendUrl = API_BASE_URL;
       window.location.href = `${backendUrl}/auth/${provider}`;
     } catch (error) {
       console.error(`${provider} login error:`, error);
