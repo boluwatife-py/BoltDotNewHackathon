@@ -52,6 +52,9 @@ export const HTTP_METHODS = {
   DELETE: 'DELETE',
 } as const;
 
+// Request timeout in milliseconds (10 seconds)
+export const REQUEST_TIMEOUT = 10000;
+
 // Request headers
 export const getAuthHeaders = (token?: string) => {
   const headers: Record<string, string> = {
@@ -65,7 +68,18 @@ export const getAuthHeaders = (token?: string) => {
   return headers;
 };
 
-// API request helper with better error handling
+// Create AbortController for timeout
+const createTimeoutController = (timeoutMs: number = REQUEST_TIMEOUT) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  return {
+    controller,
+    cleanup: () => clearTimeout(timeoutId)
+  };
+};
+
+// API request helper with timeout and better error handling
 export const apiRequest = async (
   endpoint: string,
   options: {
@@ -73,6 +87,7 @@ export const apiRequest = async (
     body?: any;
     token?: string;
     headers?: Record<string, string>;
+    timeout?: number;
   } = {}
 ) => {
   const {
@@ -80,6 +95,7 @@ export const apiRequest = async (
     body,
     token,
     headers: customHeaders = {},
+    timeout = REQUEST_TIMEOUT,
   } = options;
 
   const url = `${API_BASE_URL}${endpoint}`;
@@ -88,9 +104,13 @@ export const apiRequest = async (
     ...customHeaders,
   };
 
+  // Create timeout controller
+  const { controller, cleanup } = createTimeoutController(timeout);
+
   const config: RequestInit = {
     method,
     headers,
+    signal: controller.signal,
   };
 
   if (body && method !== 'GET') {
@@ -99,6 +119,9 @@ export const apiRequest = async (
 
   try {
     const response = await fetch(url, config);
+    
+    // Clean up timeout
+    cleanup();
     
     // Handle different response types
     const contentType = response.headers.get('content-type');
@@ -115,13 +138,28 @@ export const apiRequest = async (
     }
 
     return { data, response };
-  } catch (error) {
+  } catch (error: any) {
+    // Clean up timeout
+    cleanup();
+    
+    // Handle timeout errors
+    if (error.name === 'AbortError') {
+      console.error(`API request timeout: ${method} ${url}`);
+      throw new Error('Request timeout. Please check your internet connection and try again.');
+    }
+    
+    // Handle network errors
+    if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+      console.error(`Network error: ${method} ${url}`, error);
+      throw new Error('Network error. Please check your internet connection and try again.');
+    }
+    
     console.error(`API request failed: ${method} ${url}`, error);
     throw error;
   }
 };
 
-// Specific API functions
+// Specific API functions with timeout support
 export const authAPI = {
   signup: (userData: {
     email: string;
