@@ -108,14 +108,17 @@ class TokenService:
                 logger.warning(f"Token expired for {email}")
                 return False
             
-            # Mark token as used
-            update_result = self.db.supabase.table("verification_tokens").update({"used": True, "used_at": datetime.utcnow().isoformat()}).eq("id", token_record["id"]).execute()
+            # Mark token as used (atomic operation to prevent race conditions)
+            update_result = self.db.supabase.table("verification_tokens").update({
+                "used": True, 
+                "used_at": datetime.utcnow().isoformat()
+            }).eq("id", token_record["id"]).eq("used", False).execute()  # Double-check it's still unused
             
             if update_result.data:
                 logger.info(f"Token verified and consumed for {email}")
                 return True
             else:
-                logger.error(f"Failed to mark token as used for {email}")
+                logger.warning(f"Token was already used by another request for {email}")
                 return False
                 
         except Exception as e:

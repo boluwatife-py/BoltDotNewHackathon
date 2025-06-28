@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { CheckCircle, XCircle, RefreshCcw, Mail } from "lucide-react";
 import { authAPI } from "../../config/api";
@@ -9,18 +9,21 @@ const EmailVerification: React.FC = () => {
   const [status, setStatus] = useState<"verifying" | "success" | "error" | "expired">("verifying");
   const [message, setMessage] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const hasVerified = useRef(false); // Prevent duplicate verification attempts
 
   const token = searchParams.get("token");
   const email = searchParams.get("email");
 
   useEffect(() => {
-    if (token && email) {
+    // Only verify if we haven't already attempted verification
+    if (token && email && !hasVerified.current) {
+      hasVerified.current = true; // Mark as attempted
       verifyEmail();
-    } else {
+    } else if (!token || !email) {
       setStatus("error");
       setMessage("Invalid verification link");
     }
-  }, [token, email]);
+  }, [token, email]); // Remove verifyEmail from dependencies to prevent re-runs
 
   const verifyEmail = async () => {
     try {
@@ -41,6 +44,9 @@ const EmailVerification: React.FC = () => {
       if (error.message?.includes("expired")) {
         setStatus("expired");
         setMessage("This verification link has expired. Please request a new one.");
+      } else if (error.message?.includes("Invalid") || error.message?.includes("already")) {
+        setStatus("error");
+        setMessage("This verification link is invalid or has already been used.");
       } else {
         setStatus("error");
         setMessage(error.message || "Verification failed");
@@ -49,7 +55,7 @@ const EmailVerification: React.FC = () => {
   };
 
   const resendVerification = async () => {
-    if (!email) return;
+    if (!email || isResending) return;
 
     setIsResending(true);
     try {
@@ -60,6 +66,7 @@ const EmailVerification: React.FC = () => {
     } catch (error: any) {
       console.error("Resend error:", error);
       setMessage(error.message || "Failed to resend verification email");
+      setStatus("error");
     } finally {
       setIsResending(false);
     }
@@ -194,7 +201,13 @@ const EmailVerification: React.FC = () => {
             
             {status === "error" && (
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  // Reset state and try again
+                  hasVerified.current = false;
+                  setStatus("verifying");
+                  setMessage("");
+                  verifyEmail();
+                }}
                 className="block w-full px-6 py-3 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
               >
                 Try Again
