@@ -38,7 +38,7 @@ class OAuthService:
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         
         # Use environment variable or construct from frontend URL
-        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", f"{os.getenv('VITE_API_BASE_URL', 'http://localhost:8000')}/auth/google/callback")
         
         # Frontend URL for redirects
         self.frontend_url = frontend_url
@@ -50,6 +50,9 @@ class OAuthService:
         
         # OAuth scopes
         self.google_scopes = ["openid", "email", "profile"]
+        
+        # Initialize state storage
+        self._oauth_states = {}
         
         logger.info(f"OAuth Service initialized with redirect URI: {self.google_redirect_uri}")
         logger.info(f"Frontend URL: {self.frontend_url}")
@@ -96,17 +99,30 @@ class OAuthService:
     def verify_oauth_state(self, state: str, provider: str) -> bool:
         """Verify OAuth state parameter"""
         try:
-            if not hasattr(self, '_oauth_states') or state not in self._oauth_states:
+            if not hasattr(self, '_oauth_states'):
+                logger.error(f"OAuth state storage not initialized")
+                return False
+                
+            if state not in self._oauth_states:
                 logger.error(f"OAuth state not found: {state[:8]}...")
+                # For debugging, log all available states
+                available_states = list(self._oauth_states.keys())
+                logger.error(f"Available states: {[s[:8] for s in available_states]}")
                 return False
             
             state_data = self._oauth_states[state]
             
             # Check if state matches provider and hasn't been used
-            if (state_data["provider"] != provider or 
-                state_data["used"] or 
-                datetime.fromisoformat(state_data["expires_at"]) < datetime.utcnow()):
-                logger.error(f"OAuth state invalid or expired: {state[:8]}...")
+            if state_data["provider"] != provider:
+                logger.error(f"OAuth state provider mismatch: expected {provider}, got {state_data['provider']}")
+                return False
+                
+            if state_data["used"]:
+                logger.error(f"OAuth state already used: {state[:8]}...")
+                return False
+                
+            if datetime.fromisoformat(state_data["expires_at"]) < datetime.utcnow():
+                logger.error(f"OAuth state expired: {state[:8]}...")
                 return False
             
             # Mark as used
@@ -115,7 +131,7 @@ class OAuthService:
             return True
             
         except Exception as e:
-            logger.error(f"Error verifying OAuth state: {str(e)}")
+            logger.error(f"Error verifying OAuth state: {str(e)}", exc_info=True)
             return False
     
     def get_google_auth_url(self) -> tuple[str, str]:
