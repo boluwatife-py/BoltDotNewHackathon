@@ -140,7 +140,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: "Unable to connect to server. Please check your internet connection and try again." };
       }
       
-      return { success: false, error: error.message || "Login failed" };
+      // Handle specific error cases
+      if (error.message.includes('401') || error.message.includes('Invalid email or password')) {
+        return { success: false, error: "Invalid email or password. Please try again." };
+      }
+      
+      if (error.message.includes('404') || error.message.includes('not found')) {
+        return { success: false, error: "Account not found. Please check your email or create a new account." };
+      }
+      
+      if (error.message.includes('too many') || error.message.includes('rate limit')) {
+        return { success: false, error: "Too many login attempts. Please try again later." };
+      }
+      
+      return { success: false, error: error.message || "Login failed. Please try again." };
     } finally {
       setIsLoading(false);
     }
@@ -198,7 +211,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: "Unable to connect to server. Please check your internet connection and try again." };
       }
       
-      return { success: false, error: error.message || "Signup failed" };
+      // Handle specific error cases
+      if (error.message.includes('already registered') || error.message.includes('already exists')) {
+        return { success: false, error: "This email is already registered. Please use a different email or try logging in." };
+      }
+      
+      if (error.message.includes('password') && error.message.includes('weak')) {
+        return { success: false, error: "Password is too weak. Please use a stronger password with at least 6 characters." };
+      }
+      
+      if (error.message.includes('invalid email')) {
+        return { success: false, error: "Please enter a valid email address." };
+      }
+      
+      return { success: false, error: error.message || "Signup failed. Please try again." };
     } finally {
       setIsLoading(false);
     }

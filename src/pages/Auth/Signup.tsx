@@ -177,10 +177,13 @@ const Signup: React.FC = () => {
   const handleSocialLogin = async (provider: 'google') => {
     try {
       // Redirect to backend OAuth endpoint
+      if (!API_BASE_URL) {
+        throw new Error("API_BASE_URL is not defined");
+      }
       window.location.href = `${API_BASE_URL}/auth/${provider}`;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`${provider} login error:`, error);
-      const errorMessage = `Failed to initiate ${provider} login. Please try again.`;
+      const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors(prev => ({ 
         ...prev, 
         general: errorMessage
@@ -191,6 +194,10 @@ const Signup: React.FC = () => {
 
   const resendVerificationEmail = async () => {
     try {
+      if (!API_BASE_URL) {
+        throw new Error("API_BASE_URL is not defined");
+      }
+      
       const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: "POST",
         headers: {
@@ -206,10 +213,13 @@ const Signup: React.FC = () => {
           message: "Verification email resent successfully!"
         }));
         showNotification('success', "Verification email resent successfully!");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to resend verification email");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to resend verification email:", error);
-      showNotification('error', "Failed to resend verification email");
+      showNotification('error', error.message || "Failed to resend verification email");
     }
   };
 
@@ -344,7 +354,10 @@ const Signup: React.FC = () => {
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-600 text-sm">{errors.general}</p>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                  <p className="text-red-600 text-sm">{errors.general}</p>
+                </div>
               </div>
             )}
 

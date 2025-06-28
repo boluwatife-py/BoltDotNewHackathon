@@ -38,6 +38,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
+      showNotification('success', location.state.message);
       // Clear the message from navigation state
       window.history.replaceState({}, document.title);
     }
@@ -63,7 +64,7 @@ const Login: React.FC = () => {
       // Navigate to home page after a short delay
       setTimeout(() => {
         navigate("/", { replace: true });
-      }, 1000);
+      }, 1500);
     }
     
     // Check for OAuth errors
@@ -72,6 +73,7 @@ const Login: React.FC = () => {
     
     if (error && errorMessage) {
       showNotification('error', `Google Sign-in failed: ${errorMessage}`);
+      setErrors(prev => ({ ...prev, general: `Google Sign-in failed: ${errorMessage}` }));
       // Clean URL
       window.history.replaceState({}, document.title, location.pathname);
     }
@@ -107,7 +109,7 @@ const Login: React.FC = () => {
     
     if (result.success) {
       showNotification('success', 'Successfully signed in!');
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(() => navigate("/"), 1500);
     } else {
       setErrors(prev => ({ ...prev, general: result.error || "Login failed" }));
       showNotification('error', result.error || "Login failed");
@@ -128,10 +130,13 @@ const Login: React.FC = () => {
     try {
       // Redirect to backend OAuth endpoint
       const backendUrl = API_BASE_URL;
+      if (!backendUrl) {
+        throw new Error("API_BASE_URL is not defined");
+      }
       window.location.href = `${backendUrl}/auth/${provider}`;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`${provider} login error:`, error);
-      const errorMessage = `Failed to initiate ${provider} login. Please try again.`;
+      const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors(prev => ({ 
         ...prev, 
         general: errorMessage
@@ -191,7 +196,10 @@ const Login: React.FC = () => {
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-600 text-sm">{errors.general}</p>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                  <p className="text-red-600 text-sm">{errors.general}</p>
+                </div>
               </div>
             )}
 
