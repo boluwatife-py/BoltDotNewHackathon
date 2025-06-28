@@ -8,7 +8,7 @@ import { Eye, EyeOff, CheckCircle, AlertCircle, X } from "lucide-react";
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -24,6 +24,7 @@ const Login: React.FC = () => {
     message: string;
     visible: boolean;
   }>({ type: "info", message: "", visible: false });
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
 
   // Show notification function
   const showNotification = (
@@ -38,6 +39,13 @@ const Login: React.FC = () => {
       }, 5000);
     }
   };
+
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isProcessingOAuth) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate, isProcessingOAuth]);
 
   // Check for success message from navigation state
   useEffect(() => {
@@ -55,6 +63,8 @@ const Login: React.FC = () => {
     const refreshToken = urlParams.get("refresh_token");
 
     if (accessToken && refreshToken) {
+      setIsProcessingOAuth(true);
+      
       // Store tokens
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("refresh_token", refreshToken);
@@ -65,10 +75,12 @@ const Login: React.FC = () => {
       // Show success notification
       showNotification("success", "Successfully signed in with Google!");
 
-      // Navigate to home page after a short delay
+      // Force a page reload to trigger auth context update
       setTimeout(() => {
-        navigate("/", { replace: true });
-      }, 1500);
+        window.location.href = "/";
+      }, 1000);
+      
+      return;
     }
 
     // Check for OAuth errors
@@ -116,7 +128,7 @@ const Login: React.FC = () => {
 
     if (result.success) {
       showNotification("success", "Successfully signed in!");
-      setTimeout(() => navigate("/"), 1500);
+      // Navigation will be handled by the useEffect above
     } else {
       setErrors((prev) => ({
         ...prev,
@@ -159,6 +171,22 @@ const Login: React.FC = () => {
       showNotification("error", errorMessage);
     }
   };
+
+  // Show loading state while processing OAuth
+  if (isProcessingOAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-row gap-2">
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce"></div>
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.3s]"></div>
+            <div className="w-3 h-3 rounded-full bg-[var(--primary-color)] animate-bounce [animation-delay:-.5s]"></div>
+          </div>
+          <p className="text-[var(--text-secondary)] text-sm">Completing Google sign-in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -209,6 +237,13 @@ const Login: React.FC = () => {
         </div>
         <div className="w-full max-w-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* General Error */}
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

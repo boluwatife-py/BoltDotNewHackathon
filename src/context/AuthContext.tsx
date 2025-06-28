@@ -126,6 +126,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus();
   }, []);
 
+  // Listen for storage changes (for OAuth token updates)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "access_token" && e.newValue) {
+        // Token was added, re-check auth status
+        checkAuthStatus();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const retryConnection = async () => {
     setIsLoading(true);
     await checkAuthStatus();
@@ -180,6 +193,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return {
           success: false,
           error: "Invalid email or password. Please try again.",
+        };
+      }
+
+      if (
+        error.message.includes("Email not verified")
+      ) {
+        return {
+          success: false,
+          error: "Please verify your email address before signing in. Check your inbox for the verification link.",
         };
       }
 
