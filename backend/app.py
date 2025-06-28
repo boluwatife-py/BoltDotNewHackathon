@@ -151,7 +151,6 @@ async def google_oauth(request: Request):
         oauth_service = app.state.oauth_service
         
         if not oauth_service.is_configured("google"):
-            logger.error("Google OAuth not configured")
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
@@ -159,7 +158,6 @@ async def google_oauth(request: Request):
         
         # Generate OAuth URL
         auth_url, state = oauth_service.get_google_auth_url()
-        logger.info(f"Redirecting to Google OAuth with state: {state[:8]}...")
         
         # Redirect to Google OAuth
         return RedirectResponse(url=auth_url, status_code=302)
@@ -167,7 +165,7 @@ async def google_oauth(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Google OAuth error: {str(e)}", exc_info=True)
+        logger.error(f"Google OAuth error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="OAuth initialization failed"
@@ -179,8 +177,6 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
     try:
         oauth_service = app.state.oauth_service
         
-        logger.info(f"OAuth callback received - code: {'present' if code else 'missing'}, state: {state[:8] if state else 'missing'}, error: {error}")
-        
         if error:
             logger.warning(f"Google OAuth error: {error}")
             redirect_url = oauth_service.get_frontend_redirect_url(
@@ -191,7 +187,6 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
             return RedirectResponse(url=redirect_url, status_code=302)
         
         if not code or not state:
-            logger.error("Missing required OAuth parameters")
             redirect_url = oauth_service.get_frontend_redirect_url(
                 success=False, 
                 error="missing_parameters", 
@@ -208,12 +203,10 @@ async def google_oauth_callback(code: str, state: str, error: Optional[str] = No
             access_token=result['access_token'],
             refresh_token=result['refresh_token']
         )
-        
-        logger.info(f"OAuth success, redirecting to: {redirect_url}")
         return RedirectResponse(url=redirect_url, status_code=302)
         
     except Exception as e:
-        logger.error(f"Google OAuth callback error: {str(e)}", exc_info=True)
+        logger.error(f"Google OAuth callback error: {str(e)}")
         oauth_service = app.state.oauth_service
         redirect_url = oauth_service.get_frontend_redirect_url(
             success=False, 
@@ -313,6 +306,7 @@ async def verify_email(
     """Verify user email address"""
     try:
         token_service = app.state.token_service
+        auth_service = AuthService(db)
         
         # Verify the token
         is_valid = await token_service.verify_token(
@@ -328,7 +322,6 @@ async def verify_email(
             )
         
         # Update user as verified
-        auth_service = AuthService(db)
         user = await auth_service.get_user_by_email(verification_data.email)
         
         if not user:
@@ -337,8 +330,15 @@ async def verify_email(
                 detail="User not found"
             )
         
-        # Mark user as verified
-        await auth_service.update_user(user["id"], {"email_verified": True})
+        # Mark user as verified using the auth service method
+        verification_success = await auth_service.mark_email_verified(verification_data.email)
+        
+        if not verification_success:
+            logger.error(f"Failed to mark email as verified for {verification_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to verify email"
+            )
         
         logger.info(f"Email verified successfully for {verification_data.email}")
         return {"message": "Email verified successfully"}
@@ -435,7 +435,7 @@ async def login(
     try:
         auth_service = AuthService(db)
         
-        # Authenticate user
+        # Authenticate user (this will check email verification)
         user = await auth_service.authenticate_user(
             credentials.email, 
             credentials.password
@@ -445,14 +445,6 @@ async def login(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
-            )
-        
-        # Check if email is verified (this is now handled in authenticate_user)
-        # But we'll double-check here for safety
-        if not user.get("email_verified", False) and credentials.email != "demo@safedoser.com":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email not verified. Please check your email for verification link."
             )
         
         # Generate tokens

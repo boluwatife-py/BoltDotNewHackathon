@@ -117,9 +117,9 @@ class AuthService:
                 "name": user_data.name,
                 "age": user_data.age,
                 "avatar_url": user_data.avatar,
+                "email_verified": False,  # Default to false, will be set to true after verification
                 "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
-                "email_verified": False  # Default to not verified
+                "updated_at": datetime.utcnow().isoformat()
             }
 
             user = await self.db.create_user(db_user_data)
@@ -170,31 +170,33 @@ class AuthService:
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate a user with email and password"""
         try:
-            # Get user by email
+            # Get user from database
             user = await self.db.get_user_by_email(email)
             
             if not user:
                 logger.warning(f"Authentication failed: User not found for email {email}")
                 return None
             
-            # For demo purposes, we'll accept any password for demo@safedoser.com
+            # Check if email is verified (skip for demo user)
+            if email != "demo@safedoser.com" and not user.get("email_verified", False):
+                logger.warning(f"Authentication failed: Email not verified for {email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Email not verified. Please check your email for verification link."
+                )
+            
+            # Verify password
             if email == "demo@safedoser.com" or self.verify_password(password, user.get("password_hash", "")):
-                # Check if email is verified
-                if not user.get("email_verified", False) and email != "demo@safedoser.com":
-                    logger.warning(f"Authentication failed: Email not verified for {email}")
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Email not verified. Please check your email for verification link."
-                    )
-                
                 # Remove sensitive data
                 user.pop("password_hash", None)
+                logger.info(f"Authentication successful for {email}")
                 return user
             
             logger.warning(f"Authentication failed: Invalid password for {email}")
             return None
             
         except HTTPException:
+            # Re-raise HTTP exceptions (like email not verified)
             raise
         except Exception as e:
             logger.error(f"Authenticate user error: {str(e)}")
@@ -237,6 +239,23 @@ class AuthService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update user"
             )
+
+    async def mark_email_verified(self, email: str) -> bool:
+        """Mark user's email as verified"""
+        try:
+            # Use the database function to mark email as verified
+            result = self.db.supabase.rpc('mark_user_email_verified', {'user_email': email}).execute()
+            
+            if result.data:
+                logger.info(f"Email marked as verified for {email}")
+                return True
+            else:
+                logger.warning(f"Failed to mark email as verified for {email}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error marking email as verified for {email}: {str(e)}")
+            return False
 
 # Dependency to get current user
 async def get_current_user(
