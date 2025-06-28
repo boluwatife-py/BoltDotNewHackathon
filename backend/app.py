@@ -447,6 +447,14 @@ async def login(
                 detail="Invalid email or password"
             )
         
+        # Check if email is verified (this is now handled in authenticate_user)
+        # But we'll double-check here for safety
+        if not user.get("email_verified", False) and credentials.email != "demo@safedoser.com":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email not verified. Please check your email for verification link."
+            )
+        
         # Generate tokens
         access_token = auth_service.create_access_token(user["id"])
         refresh_token = auth_service.create_refresh_token(user["id"])

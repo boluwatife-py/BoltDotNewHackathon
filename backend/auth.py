@@ -118,7 +118,8 @@ class AuthService:
                 "age": user_data.age,
                 "avatar_url": user_data.avatar,
                 "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat(),
+                "email_verified": False  # Default to not verified
             }
 
             user = await self.db.create_user(db_user_data)
@@ -169,21 +170,32 @@ class AuthService:
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate a user with email and password"""
         try:
-            # For now, we'll use a simple authentication method
-            # In a real implementation, you would use Supabase auth
+            # Get user by email
             user = await self.db.get_user_by_email(email)
             
             if not user:
+                logger.warning(f"Authentication failed: User not found for email {email}")
                 return None
             
             # For demo purposes, we'll accept any password for demo@safedoser.com
             if email == "demo@safedoser.com" or self.verify_password(password, user.get("password_hash", "")):
+                # Check if email is verified
+                if not user.get("email_verified", False) and email != "demo@safedoser.com":
+                    logger.warning(f"Authentication failed: Email not verified for {email}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Email not verified. Please check your email for verification link."
+                    )
+                
                 # Remove sensitive data
                 user.pop("password_hash", None)
                 return user
             
+            logger.warning(f"Authentication failed: Invalid password for {email}")
             return None
             
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Authenticate user error: {str(e)}")
             return None
