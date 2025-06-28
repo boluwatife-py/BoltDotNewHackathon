@@ -226,20 +226,18 @@ function AddManually() {
             <div className="w-[4.6875rem] h-[4.6875rem] rounded-[0.5rem] overflow-hidden bg-orange-200 flex items-center justify-center">
               <span className="text-orange-600 text-2xl">💊</span>
             </div>
-            <div className="flex flex-col items-start justify-center flex-1">
+            <div className="flex flex-col items-start justify-center flex-1 gap-[0.5rem]">
               <InputField
                 placeholder="Supplement Name"
                 value={formData.supplementName}
                 onChange={(e) => setFormData(prev => ({ ...prev, supplementName: e.target.value }))}
                 state={errors.supplementName ? "error" : "default"}
-                className="text-[1.25rem] font-medium mb-2"
               />
               <InputField
                 placeholder="Supplement Strength (e.g., 5000 IU)"
                 value={formData.supplementStrength}
                 onChange={(e) => setFormData(prev => ({ ...prev, supplementStrength: e.target.value }))}
                 state="default"
-                className="text-[0.75rem] text-[var(--text-placeholder)]"
               />
             </div>
           </div>
