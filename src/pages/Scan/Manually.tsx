@@ -16,26 +16,41 @@ import { type FormData } from "../../types/FormData";
 function AddManually() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Check if we're in edit mode and have supplement data
   const editMode = location.state?.editMode || false;
   const supplementData = location.state?.supplementData as FormData | undefined;
   const scannedData = location.state?.scannedData;
 
+  // Initialize interactions with proper default structure
+  const defaultInteractions = {
+    fixedInteractions: [
+      { text: "With food", checked: false },
+      { text: "On empty stomach", checked: false },
+      { text: "Avoid alcohol", checked: false },
+      { text: "Avoid dairy", checked: false },
+      { text: "Other", checked: false },
+    ],
+    customInteractions: [],
+  };
+
   const [formData, setFormData] = useState<FormData>({
     supplementName: supplementData?.supplementName || scannedData?.name || "",
-    supplementStrength: supplementData?.supplementStrength || scannedData?.strength || "",
+    supplementStrength:
+      supplementData?.supplementStrength || scannedData?.strength || "",
     dosageForm: supplementData?.dosageForm || scannedData?.dosageForm || null,
     brandName: supplementData?.brandName || scannedData?.brand || "",
-    dose: supplementData?.dose || scannedData?.dose || { quantity: "", unit: null },
+    dose: supplementData?.dose ||
+      scannedData?.dose || { quantity: "", unit: null },
     frequency: supplementData?.frequency || scannedData?.frequency || null,
     timesOfDay: supplementData?.timesOfDay || {
       Morning: [new Date(new Date().setHours(8, 0, 0, 0))],
       Afternoon: [],
       Evening: [],
     },
-    interactions: supplementData?.interactions || { fixedInteractions: [], customInteractions: [] },
-    remindMe: supplementData?.remindMe !== undefined ? supplementData.remindMe : false,
+    interactions: supplementData?.interactions || defaultInteractions,
+    remindMe:
+      supplementData?.remindMe !== undefined ? supplementData.remindMe : false,
   });
 
   const [errors, setErrors] = useState({
@@ -74,11 +89,17 @@ function AddManually() {
   ];
 
   const handleTypeSelect = (type: string) => {
-    setFormData((prev) => ({ ...prev, dosageForm: type as FormData['dosageForm'] }));
+    setFormData((prev) => ({
+      ...prev,
+      dosageForm: type as FormData["dosageForm"],
+    }));
   };
 
   const handleFrequencySelect = (frequency: string) => {
-    setFormData((prev) => ({ ...prev, frequency: frequency as FormData['frequency'] }));
+    setFormData((prev) => ({
+      ...prev,
+      frequency: frequency as FormData["frequency"],
+    }));
   };
 
   const handleQuantityChange = (quantity: string) => {
@@ -92,7 +113,8 @@ function AddManually() {
     setIsDoseOverlayVisible(true);
   };
 
-  const handleInteractionsChange = (interactions: FormData['interactions']) => {
+  const handleInteractionsChange = (interactions: FormData["interactions"]) => {
+    console.log("Interactions changed:", interactions); // Debug log
     setFormData((prev) => ({ ...prev, interactions }));
   };
 
@@ -144,9 +166,9 @@ function AddManually() {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
         throw new Error("No authentication token");
       }
@@ -171,19 +193,28 @@ function AddManually() {
         remind_me: formData.remindMe,
         expiration_date: "2025-12-31", // Default expiration date
         quantity: "30 tablets", // Default quantity
-        image_url: null
+        image_url: null,
       };
+
+      console.log(
+        "Submitting supplement with interactions:",
+        supplementPayload.interactions
+      ); // Debug log
 
       if (editMode && location.state?.supplementId) {
         // Update existing supplement
-        await supplementsAPI.update(token, location.state.supplementId, supplementPayload);
+        await supplementsAPI.update(
+          token,
+          location.state.supplementId,
+          supplementPayload
+        );
       } else {
         // Create new supplement
         await supplementsAPI.create(token, supplementPayload);
       }
 
       setIsLoading(false);
-      
+
       if (editMode) {
         // If in edit mode, go back to supplement list
         navigate("/settings/supplement-list");
@@ -198,7 +229,7 @@ function AddManually() {
     }
   };
 
-  const handleTimesOfDayChange = (timesOfDay: FormData['timesOfDay']) => {
+  const handleTimesOfDayChange = (timesOfDay: FormData["timesOfDay"]) => {
     setFormData((prev) => ({ ...prev, timesOfDay }));
   };
 
@@ -214,9 +245,9 @@ function AddManually() {
 
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
-      <HeadInfo 
-        text={editMode ? "Edit Supplement" : "Supplement Details"} 
-        prevType="Cancel" 
+      <HeadInfo
+        text={editMode ? "Edit Supplement" : "Supplement Details"}
+        prevType="Cancel"
         onPrevClick={handleCancel}
       />
       <div className="flex-1 flex flex-col justify-between">
@@ -226,20 +257,28 @@ function AddManually() {
             <div className="w-[4.6875rem] h-[4.6875rem] rounded-[0.5rem] overflow-hidden bg-orange-200 flex items-center justify-center">
               <span className="text-orange-600 text-2xl">💊</span>
             </div>
-            <div className="flex flex-col items-start justify-center flex-1">
+            <div className="flex flex-col items-start justify-center flex-1 gap-[0.5rem]">
               <InputField
                 placeholder="Supplement Name"
                 value={formData.supplementName}
-                onChange={(e) => setFormData(prev => ({ ...prev, supplementName: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    supplementName: e.target.value,
+                  }))
+                }
                 state={errors.supplementName ? "error" : "default"}
-                className="text-[1.25rem] font-medium mb-2"
               />
               <InputField
                 placeholder="Supplement Strength (e.g., 5000 IU)"
                 value={formData.supplementStrength}
-                onChange={(e) => setFormData(prev => ({ ...prev, supplementStrength: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    supplementStrength: e.target.value,
+                  }))
+                }
                 state="default"
-                className="text-[0.75rem] text-[var(--text-placeholder)]"
               />
             </div>
           </div>
@@ -434,7 +473,7 @@ function AddManually() {
             />
 
             {/* Interactions */}
-            <InteractionsList 
+            <InteractionsList
               initialData={formData.interactions}
               onChange={handleInteractionsChange}
             />
@@ -444,18 +483,20 @@ function AddManually() {
               <div className="py-[0.62rem] text-[1.0625rem] text-[var(--text-primary)]">
                 <span>Remind me to take this medication</span>
               </div>
-              <Toggle 
+              <Toggle
                 checked={formData.remindMe}
-                onChange={(checked) => setFormData(prev => ({ ...prev, remindMe: checked }))}
+                onChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, remindMe: checked }))
+                }
               />
             </div>
           </form>
         </div>
 
-        <Button 
-          text={editMode ? "Update" : "Save"} 
-          handleClick={handleSubmit} 
-          loading={isLoading} 
+        <Button
+          text={editMode ? "Update" : "Save"}
+          handleClick={handleSubmit}
+          loading={isLoading}
         />
       </div>
     </div>

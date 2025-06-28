@@ -7,7 +7,7 @@ import "swiper/css/pagination";
 
 const NoticeCard: React.FC = () => {
   const handleNoticeClick = (link: string) => {
-    window.open(link, '_blank', 'noopener,noreferrer');
+    window.open(link, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -20,7 +20,7 @@ const NoticeCard: React.FC = () => {
 
       <div className="relative">
         {/* Notice Box */}
-        <div className="h-[14rem] rounded-[16px] overflow-hidden shadow-lg">
+        <div className="rounded-[16px] overflow-hidden shadow-lg">
           <Swiper
             modules={[Pagination, Autoplay]}
             pagination={{
@@ -32,17 +32,17 @@ const NoticeCard: React.FC = () => {
               disableOnInteraction: false,
             }}
             spaceBetween={0}
-            className="h-full"
+            className="w-full"
           >
             <SwiperSlide>
-              <div 
-                className="relative h-full cursor-pointer group overflow-hidden"
+              <div
+                className="relative w-full cursor-pointer group overflow-hidden"
                 onClick={() => handleNoticeClick("https://bolt.new")}
               >
-                <img 
-                  src="/src/assets/images/banner1Bolt.svg" 
-                  alt="SafeDoser Banner" 
-                  className="w-full h-full object-cover"
+                <img
+                  src="/src/assets/images/banner1Bolt.svg"
+                  alt="SafeDoser Banner"
+                  className="w-full h-auto object-contain"
                 />
               </div>
             </SwiperSlide>

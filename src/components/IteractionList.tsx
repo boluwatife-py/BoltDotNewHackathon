@@ -43,6 +43,16 @@ export default function InteractionsList({ initialData, onChange }: Interactions
     }
   }, [initialData]);
 
+  // Call onChange immediately when component mounts to set initial state
+  useEffect(() => {
+    if (onChange) {
+      onChange({
+        fixedInteractions,
+        customInteractions,
+      });
+    }
+  }, []); // Only run on mount
+
   const handleToggleFixed = (text: string) => {
     setFixedInteractions((prev) => {
       const updated = prev.map((item) =>

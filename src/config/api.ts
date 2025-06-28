@@ -2,70 +2,85 @@
 // This file centralizes all API-related configuration
 
 // Get API base URL from environment variable or use localhost
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 // API endpoints
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    SIGNUP: '/auth/signup',
-    LOGIN: '/auth/login',
-    REFRESH: '/auth/refresh',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    VERIFY_EMAIL: '/auth/verify-email',
-    RESEND_VERIFICATION: '/auth/resend-verification',
-    RESET_PASSWORD: '/auth/reset-password',
+    SIGNUP: "/auth/signup",
+    LOGIN: "/auth/login",
+    REFRESH: "/auth/refresh",
+    FORGOT_PASSWORD: "/auth/forgot-password",
+    VERIFY_EMAIL: "/auth/verify-email",
+    RESEND_VERIFICATION: "/auth/resend-verification",
+    RESET_PASSWORD: "/auth/reset-password",
   },
-  
+
   // User profile
   USER: {
-    PROFILE: '/user/profile',
+    PROFILE: "/user/profile",
   },
-  
+
   // Supplements
   SUPPLEMENTS: {
-    BASE: '/supplements',
+    BASE: "/supplements",
     BY_ID: (id: number) => `/supplements/${id}`,
   },
-  
+
   // Chat
   CHAT: {
-    SEND: '/chat',
-    HISTORY: '/chat/history',
-    CLEAR: '/chat/clear',
+    SEND: "/chat",
+    HISTORY: "/chat/history",
+    CLEAR: "/chat/clear",
   },
-  
+
   // Health check
-  HEALTH: '/health',
-  
+  HEALTH: "/health",
+
   // Email status
   EMAIL: {
-    STATUS: '/email/status',
+    STATUS: "/email/status",
   },
 } as const;
 
 // HTTP methods
 export const HTTP_METHODS = {
-  GET: 'GET',
-  POST: 'POST',
-  PUT: 'PUT',
-  DELETE: 'DELETE',
+  GET: "GET",
+  POST: "POST",
+  PUT: "PUT",
+  DELETE: "DELETE",
 } as const;
+
+// Request timeout in milliseconds (10 seconds)
+export const REQUEST_TIMEOUT = 30000;
 
 // Request headers
 export const getAuthHeaders = (token?: string) => {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
-  
+
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
-  
+
   return headers;
 };
 
-// API request helper with better error handling
+// Create AbortController for timeout
+const createTimeoutController = (timeoutMs: number = REQUEST_TIMEOUT) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return {
+    controller,
+    cleanup: () => clearTimeout(timeoutId),
+  };
+};
+
+// API request helper with timeout and better error handling
 export const apiRequest = async (
   endpoint: string,
   options: {
@@ -73,13 +88,15 @@ export const apiRequest = async (
     body?: any;
     token?: string;
     headers?: Record<string, string>;
+    timeout?: number;
   } = {}
 ) => {
   const {
-    method = 'GET',
+    method = "GET",
     body,
     token,
     headers: customHeaders = {},
+    timeout = REQUEST_TIMEOUT,
   } = options;
 
   const url = `${API_BASE_URL}${endpoint}`;
@@ -88,40 +105,71 @@ export const apiRequest = async (
     ...customHeaders,
   };
 
+  // Create timeout controller
+  const { controller, cleanup } = createTimeoutController(timeout);
+
   const config: RequestInit = {
     method,
     headers,
+    signal: controller.signal,
   };
 
-  if (body && method !== 'GET') {
+  if (body && method !== "GET") {
     config.body = JSON.stringify(body);
   }
 
   try {
     const response = await fetch(url, config);
-    
+
+    // Clean up timeout
+    cleanup();
+
     // Handle different response types
-    const contentType = response.headers.get('content-type');
+    const contentType = response.headers.get("content-type");
     let data;
-    
-    if (contentType && contentType.includes('application/json')) {
+
+    if (contentType && contentType.includes("application/json")) {
       data = await response.json();
     } else {
       data = await response.text();
     }
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        data.error || data.message || `HTTP error! status: ${response.status}`
+      );
     }
 
     return { data, response };
-  } catch (error) {
+  } catch (error: any) {
+    // Clean up timeout
+    cleanup();
+
+    // Handle timeout errors
+    if (error.name === "AbortError") {
+      console.error(`API request timeout: ${method} ${url}`);
+      throw new Error(
+        "Request timeout. Please check your internet connection and try again."
+      );
+    }
+
+    // Handle network errors
+    if (
+      error.message === "Failed to fetch" ||
+      error.message.includes("fetch")
+    ) {
+      console.error(`Network error: ${method} ${url}`, error);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
+    }
+
     console.error(`API request failed: ${method} ${url}`, error);
     throw error;
   }
 };
 
-// Specific API functions
+// Specific API functions with timeout support
 export const authAPI = {
   signup: (userData: {
     email: string;
@@ -129,10 +177,11 @@ export const authAPI = {
     name: string;
     age: number;
     avatar?: string;
-  }) => apiRequest(API_ENDPOINTS.AUTH.SIGNUP, {
-    method: HTTP_METHODS.POST,
-    body: userData,
-  }),
+  }) =>
+    apiRequest(API_ENDPOINTS.AUTH.SIGNUP, {
+      method: HTTP_METHODS.POST,
+      body: userData,
+    }),
 
   login: (credentials: { email: string; password: string }) =>
     apiRequest(API_ENDPOINTS.AUTH.LOGIN, {
@@ -175,15 +224,19 @@ export const userAPI = {
   getProfile: (token: string) =>
     apiRequest(API_ENDPOINTS.USER.PROFILE, { token }),
 
-  updateProfile: (token: string, profileData: {
-    name?: string;
-    age?: number;
-    avatar?: string;
-  }) => apiRequest(API_ENDPOINTS.USER.PROFILE, {
-    method: HTTP_METHODS.PUT,
-    body: profileData,
-    token,
-  }),
+  updateProfile: (
+    token: string,
+    profileData: {
+      name?: string;
+      age?: number;
+      avatar?: string;
+    }
+  ) =>
+    apiRequest(API_ENDPOINTS.USER.PROFILE, {
+      method: HTTP_METHODS.PUT,
+      body: profileData,
+      token,
+    }),
 };
 
 export const supplementsAPI = {
@@ -220,10 +273,10 @@ export const chatAPI = {
     }),
 
   getHistory: (token: string, limit?: number) => {
-    const endpoint = limit 
+    const endpoint = limit
       ? `${API_ENDPOINTS.CHAT.HISTORY}?limit=${limit}`
       : API_ENDPOINTS.CHAT.HISTORY;
-    
+
     return apiRequest(endpoint, { token });
   },
 
