@@ -33,9 +33,10 @@ class OAuthService:
         # Google OAuth configuration
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        # Use environment variable or default to localhost for development
         self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
         
-        # Frontend URL for redirects
+        # Frontend URL for redirects - this should be the WebContainer URL
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         
         # OAuth endpoints
@@ -122,7 +123,8 @@ class OAuthService:
         }
         
         auth_url = f"{self.google_auth_url}?{urlencode(params)}"
-        print(f"Generated Google OAuth URL: {auth_url}")
+        logger.info(f"Generated Google OAuth URL: {auth_url}")
+        logger.info(f"Redirect URI: {self.google_redirect_uri}")
         return auth_url, state
     
     async def handle_google_callback(self, code: str, state: str) -> Dict[str, Any]:
@@ -141,6 +143,7 @@ class OAuthService:
                 "redirect_uri": self.google_redirect_uri
             }
             
+            logger.info(f"Exchanging code for tokens with redirect_uri: {self.google_redirect_uri}")
             token_response = requests.post(self.google_token_url, data=token_data)
             token_response.raise_for_status()
             tokens = token_response.json()
@@ -150,6 +153,8 @@ class OAuthService:
             user_response = requests.get(self.google_userinfo_url, headers=headers)
             user_response.raise_for_status()
             user_info = user_response.json()
+            
+            logger.info(f"Retrieved user info: {user_info.get('email', 'unknown')}")
             
             # Create or get user
             user_data = {

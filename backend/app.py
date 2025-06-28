@@ -100,18 +100,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "https://safedoser.netlify.app",
-        "*webcontainer-api.io",
-        "*local-credentialless.webcontainer-api.io",
-        # Add your frontend URLs here
-    ],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
