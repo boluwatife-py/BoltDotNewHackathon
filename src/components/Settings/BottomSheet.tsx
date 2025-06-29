@@ -145,13 +145,11 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
       // Close the bottom sheet immediately
       onClose();
       
-      // Small delay to ensure UI updates smoothly
-      setTimeout(() => {
-        if (onSupplementDeleted) {
-          console.log('Calling onSupplementDeleted callback');
-          onSupplementDeleted();
-        }
-      }, 100);
+      // Call the callback to refresh the list
+      if (onSupplementDeleted) {
+        console.log('Calling onSupplementDeleted callback');
+        await onSupplementDeleted();
+      }
       
     } catch (error: any) {
       console.error("Error deleting supplement:", error);
