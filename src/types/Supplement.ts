@@ -12,13 +12,27 @@ type SupplementItem = {
   alerts?: SupplementAlert[];
   type: "default" | "gummy" | "liquid" | "powder" | "softgel" | "tablet";
   completed: boolean;
-  period: "Morning" | "Afternoon" | "Evening"; // Add period for filtering
+  period: "Morning" | "Afternoon" | "Evening";
+  supplementId: number; // Original supplement ID from database
+  logId?: string; // Log ID if completion status is tracked
 };
 
 interface SupplementCardProps {
   supplements: SupplementItem[];
   onToggleMute: (id: number) => void;
   onToggleCompleted: (id: number) => void;
+}
+
+// Supplement log type for tracking completion
+export interface SupplementLog {
+  id: string;
+  user_id: string;
+  supplement_id: number;
+  scheduled_time: string; // HH:MM format
+  taken_at?: string; // ISO timestamp when marked as taken
+  status: 'pending' | 'taken' | 'missed' | 'skipped';
+  notes?: string;
+  created_at: string;
 }
 
 // Legacy supplement type for backward compatibility

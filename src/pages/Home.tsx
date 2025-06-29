@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GreetingCard from "../components/GreetingCard/GreetingCard";
 import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
@@ -20,6 +20,16 @@ const Home: React.FC = () => {
   });
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  
+  // Auto-refresh supplements every minute
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("🔄 Auto-refreshing supplements");
+      refetch();
+    }, 60000); // 60 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [refetch]);
   
   // Notification state
   const [notificationToast, setNotificationToast] = useState<{
@@ -95,6 +105,7 @@ const Home: React.FC = () => {
   const markSupplementCompleted = () => {
     if (notificationToast.supplement) {
       handleToggleCompleted(notificationToast.supplement.id);
+      closeNotificationToast();
     }
   };
 
@@ -119,6 +130,10 @@ const Home: React.FC = () => {
   const morningSupplements = getSupplementsBySlot("morning");
   const afternoonSupplements = getSupplementsBySlot("afternoon");
   const eveningSupplements = getSupplementsBySlot("evening");
+
+  console.log("🌞 Morning supplements:", morningSupplements);
+  console.log("🌆 Afternoon supplements:", afternoonSupplements);
+  console.log("🌙 Evening supplements:", eveningSupplements);
 
   if (error) {
     return (

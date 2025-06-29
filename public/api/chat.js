@@ -17,16 +17,6 @@ export default async function handler(req, res) {
 
     // Generate AI response using Gemini AI service
     const reply = await geminiAI.generateResponse(message, context, chatHistory || []);
-
-    // Log the interaction for monitoring
-    console.log('Chat interaction:', {
-      user: context.userName,
-      age: context.userAge,
-      supplementCount: context.supplements.length,
-      messageLength: message.length,
-      timestamp: new Date().toISOString()
-    });
-
     return res.status(200).json({ reply });
 
   } catch (error) {

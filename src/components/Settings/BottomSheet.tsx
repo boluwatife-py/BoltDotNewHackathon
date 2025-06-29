@@ -137,17 +137,13 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
       if (!token) {
         throw new Error("No authentication token");
       }
-
-      console.log(`Deleting supplement with ID: ${supplement.id}`);
       await supplementsAPI.delete(token, supplement.id);
-      console.log('Supplement deleted successfully from backend');
       
       // Close the bottom sheet immediately
       onClose();
       
       // Call the callback to refresh the list
       if (onSupplementDeleted) {
-        console.log('Calling onSupplementDeleted callback');
         await onSupplementDeleted();
       }
       

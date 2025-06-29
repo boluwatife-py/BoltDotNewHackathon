@@ -32,11 +32,8 @@ export default function SupplementList() {
   };
 
   const handleSupplementDeleted = async () => {
-    console.log('handleSupplementDeleted called - triggering refetch');
-    // Force a complete refresh of the supplement list
     try {
       await refetch();
-      console.log('Supplement list refreshed successfully');
     } catch (error) {
       console.error('Error refreshing supplement list:', error);
     }

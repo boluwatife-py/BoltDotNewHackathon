@@ -8,7 +8,7 @@ interface BtnChecklistProps {
 function ButtonChecklist({ onToggle, checked }: BtnChecklistProps) {
   return (
     <button
-      className={`mt-2 w-[36px] h-[36px] flex items-center justify-center p-[0.375rem] rounded-full border-2 cursor-pointer transition-colors ${
+      className={`mt-2 w-[36px] h-[36px] flex items-center justify-center p-[0.375rem] rounded-full border-2 cursor-pointer transition-all duration-300 ${
         checked ? "bg-[var(--primary-color)] border-[var(--primary-color)]" : "bg-white border-[#CCC]"
       }`}
       onClick={onToggle}

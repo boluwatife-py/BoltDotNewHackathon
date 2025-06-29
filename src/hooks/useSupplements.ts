@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { type SupplementItem } from "../types/Supplement";
-import { supplementsAPI } from "../config/api";
+import { type SupplementItem, type SupplementLog } from "../types/Supplement";
+import { supplementsAPI, supplementLogsAPI } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
 export function useSupplements() {
@@ -8,6 +8,7 @@ export function useSupplements() {
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -16,7 +17,7 @@ export function useSupplements() {
       setSupplements([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const loadSupplements = async () => {
     try {
@@ -27,24 +28,37 @@ export function useSupplements() {
       if (!token) {
         throw new Error("No authentication token");
       }
+      
+      // Load both supplements and today's logs
+      const [supplementsResponse, logsResponse] = await Promise.all([
+        supplementsAPI.getAll(token),
+        supplementLogsAPI.getTodayLogs(token)
+      ]);
 
-      const { data } = await supplementsAPI.getAll(token);
-      console.log("Raw supplement data from API:", data);
+      const supplementsData = supplementsResponse.data;
+      const logsData = logsResponse.data || [];
+      
+      // Create a map of logs by supplement_id and scheduled_time for quick lookup
+      const logsMap = new Map<string, SupplementLog>();
+      logsData.forEach((log: SupplementLog) => {
+        // The key format should match what we'll use when looking up logs
+        // Format: "supplement_id-scheduled_time"
+        // Make sure the time format is exactly the same (HH:MM)
+        const timeStr = log.scheduled_time.substring(0, 5); // Ensure HH:MM format
+        const key = `${log.supplement_id}-${timeStr}`;
+        logsMap.set(key, log);
+      });
       
       // Transform backend data to frontend format
       const transformedSupplements: SupplementItem[] = [];
       
-      data.forEach((supplement: any) => {
-        console.log(`Processing supplement: ${supplement.name}`);
-        
+      supplementsData.forEach((supplement: any) => {
         // Parse times_of_day if it's a string
         let timesOfDay = supplement.times_of_day;
         if (typeof timesOfDay === 'string') {
           try {
             timesOfDay = JSON.parse(timesOfDay);
-            console.log(`Parsed times_of_day for ${supplement.name}:`, timesOfDay);
           } catch {
-            console.warn(`Failed to parse times_of_day for ${supplement.name}`);
             timesOfDay = {};
           }
         }
@@ -87,8 +101,6 @@ export function useSupplements() {
               let displayTime = "08:00"; // default
               
               try {
-                console.log(`Processing time for ${supplement.name} ${period}:`, timeStr);
-                
                 // Handle different time formats
                 if (timeStr.includes('T')) {
                   // ISO format: "2025-06-28T07:00:00.000Z"
@@ -106,11 +118,16 @@ export function useSupplements() {
                     displayTime = date.toTimeString().slice(0, 5);
                   }
                 }
-                
-                console.log(`Extracted time for ${supplement.name} ${period}:`, displayTime);
               } catch (error) {
-                console.warn(`Failed to parse time for ${supplement.name}:`, timeStr, error);
+                // Use default time if parsing fails
               }
+
+              // Check if there's a log for this supplement and time
+              // Important: Make sure the key format matches what we used when creating the map
+              const logKey = `${supplement.id}-${displayTime}`;
+              const log = logsMap.get(logKey);
+              
+              const isCompleted = log?.status === 'taken';
 
               // Create unique supplement item with unique ID
               const uniqueId = parseInt(`${supplement.id}${period.charCodeAt(0)}${index}`);
@@ -120,24 +137,24 @@ export function useSupplements() {
                 time: displayTime,
                 name: supplement.name,
                 muted: !supplement.remind_me,
-                completed: false, // Each time slot has its own completion state
+                completed: isCompleted,
                 type: mapDosageFormToType(supplement.dosage_form),
                 tags, // Now includes frequency and interactions as tags
                 alerts: undefined, // No alerts - interactions are now tags
-                period: period as 'Morning' | 'Afternoon' | 'Evening' // Add period for filtering
+                period: period as 'Morning' | 'Afternoon' | 'Evening', // Add period for filtering
+                supplementId: supplement.id, // Store original supplement ID
+                logId: log?.id // Store log ID if exists
               });
             });
           }
         }
       });
       
-      console.log("Final transformed supplements:", transformedSupplements);
       setSupplements(transformedSupplements);
+      setIsLoading(false);
     } catch (err: any) {
-      console.error("Error loading supplements:", err);
       setError(err.message || "Failed to load supplements");
       setSupplements([]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -157,22 +174,11 @@ export function useSupplements() {
       // Find the supplement item
       const supplementItem = supplements.find(s => s.id === id);
       if (!supplementItem) return;
-      
-      // Find the original supplement ID more accurately
+
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const { data } = await supplementsAPI.getAll(token);
-      const originalSupplement = data.find((s: any) => supplementItem.name === s.name);
-      
-      if (!originalSupplement) return;
-
-      // Update in backend
-      await supplementsAPI.update(token, originalSupplement.id, {
-        remind_me: supplementItem.muted // If currently muted, enable reminders
-      });
-
-      // Update local state for all instances of this supplement
+      // Update local state immediately for better UX
       setSupplements((prev) =>
         prev.map((item) =>
           item.name === supplementItem.name && !item.completed
@@ -180,24 +186,108 @@ export function useSupplements() {
             : item
         )
       );
+
+      // Update in backend using the original supplement ID
+      await supplementsAPI.update(token, supplementItem.supplementId, {
+        remind_me: !supplementItem.muted // If currently muted, enable reminders
+      });
+
     } catch (error) {
-      console.error("Error toggling mute:", error);
+      // Revert the optimistic update on error
+      loadSupplements();
     }
   };
 
   const handleToggleCompleted = async (id: number) => {
-    // Update only the specific supplement item (unique time slot)
-    setSupplements((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              completed: !item.completed,
-              muted: !item.completed ? true : item.muted, // Mute when completed
-            }
-          : item
-      )
-    );
+    try {
+      const supplementItem = supplements.find(s => s.id === id);
+      if (!supplementItem) {
+        return;
+      }
+
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        return;
+      }
+
+      const newCompletedStatus = !supplementItem.completed;
+      const newStatus = newCompletedStatus ? 'taken' : 'missed';
+
+      // Update local state immediately for instant UI feedback
+      setSupplements((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                completed: newCompletedStatus,
+                muted: newCompletedStatus ? true : item.muted, // Mute when completed
+              }
+            : item
+        )
+      );
+
+      // Update or create log entry in background
+      try {
+        let responseData;
+        
+        if (supplementItem.logId) {
+          const response = await supplementLogsAPI.updateLog(token, supplementItem.logId, {
+            status: newStatus,
+            taken_at: newCompletedStatus ? new Date().toISOString() : undefined
+          });
+          responseData = response.data;
+        } else {
+          const response = await supplementLogsAPI.markCompleted(token, {
+            supplement_id: supplementItem.supplementId,
+            scheduled_time: supplementItem.time,
+            status: newStatus
+          });
+          
+          responseData = response.data;
+        }
+        
+        // Update the local state with the log ID
+        if (responseData && responseData.id) {
+          setSupplements((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    logId: responseData.id
+                  }
+                : item
+            )
+          );
+        }
+        
+        // Refresh data in background to sync with server
+        setTimeout(() => {
+          setRefreshTrigger(prev => prev + 1);
+        }, 1000);
+        
+      } catch (apiError) {
+        // Revert the optimistic update on API error
+        setSupplements((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  completed: !newCompletedStatus,
+                  muted: supplementItem.muted,
+                }
+              : item
+          )
+        );
+        alert("Failed to update completion status. Please try again.");
+      }
+      
+    } catch (error) {
+      alert("Failed to update completion status. Please try again.");
+    }
+  };
+
+  const refetch = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return {
@@ -206,6 +296,6 @@ export function useSupplements() {
     error,
     handleToggleMute,
     handleToggleCompleted,
-    refetch: loadSupplements,
+    refetch,
   };
 }
