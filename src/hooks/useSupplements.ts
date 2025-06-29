@@ -48,7 +48,9 @@ export function useSupplements() {
       logsData.forEach((log: SupplementLog) => {
         // The key format should match what we'll use when looking up logs
         // Format: "supplement_id-scheduled_time"
-        const key = `${log.supplement_id}-${log.scheduled_time}`;
+        // Make sure the time format is exactly the same (HH:MM)
+        const timeStr = log.scheduled_time.substring(0, 5); // Ensure HH:MM format
+        const key = `${log.supplement_id}-${timeStr}`;
         console.log(`🔑 Creating log map key: ${key}, status: ${log.status}, id: ${log.id}`);
         logsMap.set(key, log);
       });
