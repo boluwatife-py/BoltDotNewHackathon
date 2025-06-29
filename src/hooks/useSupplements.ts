@@ -216,6 +216,19 @@ export function useSupplements() {
 
       console.log(`Toggling completion for supplement ${supplementItem.name} at ${supplementItem.time} to ${newStatus}`);
 
+      // Update local state immediately for better UX
+      setSupplements((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                completed: newCompletedStatus,
+                muted: newCompletedStatus ? true : item.muted, // Mute when completed
+              }
+            : item
+        )
+      );
+
       // Update or create log entry
       if (supplementItem.logId) {
         // Update existing log
@@ -231,19 +244,6 @@ export function useSupplements() {
           status: newStatus
         });
       }
-
-      // Update local state
-      setSupplements((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                completed: newCompletedStatus,
-                muted: newCompletedStatus ? true : item.muted, // Mute when completed
-              }
-            : item
-        )
-      );
 
       console.log(`Successfully updated completion status for ${supplementItem.name}`);
       
