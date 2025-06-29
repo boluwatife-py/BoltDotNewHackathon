@@ -46,6 +46,8 @@ export function useSupplements() {
       // Create a map of logs by supplement_id and scheduled_time for quick lookup
       const logsMap = new Map<string, SupplementLog>();
       logsData.forEach((log: SupplementLog) => {
+        // The key format should match what we'll use when looking up logs
+        // Format: "supplement_id-scheduled_time"
         const key = `${log.supplement_id}-${log.scheduled_time}`;
         console.log(`🔑 Creating log map key: ${key}, status: ${log.status}, id: ${log.id}`);
         logsMap.set(key, log);
@@ -133,6 +135,7 @@ export function useSupplements() {
               }
 
               // Check if there's a log for this supplement and time
+              // Important: Make sure the key format matches what we used when creating the map
               const logKey = `${supplement.id}-${displayTime}`;
               console.log(`🔍 Looking for log with key: ${logKey}`);
               const log = logsMap.get(logKey);
