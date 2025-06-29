@@ -71,6 +71,9 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Key for storing chat history in localStorage
+const CHAT_HISTORY_STORAGE_KEY = "safedoser_chat_history";
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -373,6 +376,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     console.log("🚪 Logging out user");
+    
+    // Clear chat history from localStorage when logging out
+    if (user) {
+      const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+      localStorage.removeItem(storageKey);
+    }
+    
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setUser(null);
