@@ -75,16 +75,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Check for existing session on app load
   const checkAuthStatus = async () => {
     try {
+      console.log("🔍 Checking auth status...");
       setConnectionError(false);
+      
       const token = localStorage.getItem("access_token");
+      console.log("📱 Token found:", !!token);
 
       if (token) {
+        console.log("🔐 Validating token with backend...");
         // Validate token by fetching user profile
         const { data } = await userAPI.getProfile(token);
+        console.log("✅ Token valid, user data received:", data.user.email);
 
         setUser({
           id: data.user.id,
@@ -94,15 +100,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           avatarUrl: data.user.avatar_url,
           email_verified: data.user.email_verified,
         });
+        
+        console.log("👤 User authenticated successfully");
+      } else {
+        console.log("❌ No token found");
+        setUser(null);
       }
     } catch (error: any) {
-      console.error("Error checking auth status:", error);
+      console.error("🚨 Auth check error:", error);
 
       // Check if it's an email verification error
       if (
         error.message.includes("Email not verified") ||
         error.message.includes("verify your email")
       ) {
+        console.log("📧 Email verification required");
         // Clear tokens and show verification message
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
@@ -119,6 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error.message.includes("ECONNREFUSED") ||
         error.message.includes("timeout")
       ) {
+        console.log("🌐 Network error detected");
         setConnectionError(true);
         console.warn(
           "Backend connection failed. App will work in offline mode for existing sessions."
@@ -128,22 +141,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Token is invalid, clear it
+      console.log("🗑️ Invalid token, clearing storage");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       setUser(null);
     } finally {
+      console.log("✨ Auth check complete");
       setIsLoading(false);
+      setHasInitialized(true);
     }
   };
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    // Only run auth check once on mount
+    if (!hasInitialized) {
+      console.log("🚀 Initializing auth context...");
+      checkAuthStatus();
+    }
+  }, [hasInitialized]);
 
   // Listen for storage changes (for OAuth token updates)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "access_token" && e.newValue) {
+      if (e.key === "access_token" && e.newValue && hasInitialized) {
+        console.log("🔄 Token updated in storage, re-checking auth");
         // Token was added, re-check auth status
         checkAuthStatus();
       }
@@ -151,9 +172,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [hasInitialized]);
 
   const retryConnection = async () => {
+    console.log("🔄 Retrying connection...");
     setIsLoading(true);
     await checkAuthStatus();
   };
@@ -163,6 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
+      console.log("🔑 Attempting login for:", email);
       setIsLoading(true);
       setConnectionError(false);
 
@@ -182,9 +205,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email_verified: data.user.email_verified,
       });
 
+      console.log("✅ Login successful");
       return { success: true };
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
 
       if (
         error.message === "Failed to fetch" ||
@@ -263,6 +287,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     emailMessage?: string;
   }> => {
     try {
+      console.log("📝 Attempting signup for:", email);
       setIsLoading(true);
       setConnectionError(false);
 
@@ -287,13 +312,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email_verified: data.user.email_verified,
       });
 
+      console.log("✅ Signup successful");
       return {
         success: true,
         emailSent: data.email_sent,
         emailMessage: data.email_message,
       };
     } catch (error: any) {
-      console.error("Signup error:", error);
+      console.error("❌ Signup error:", error);
 
       if (
         error.message === "Failed to fetch" ||
@@ -346,6 +372,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    console.log("🚪 Logging out user");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setUser(null);

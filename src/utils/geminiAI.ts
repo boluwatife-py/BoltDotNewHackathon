@@ -30,7 +30,6 @@ export class GeminiAIService {
   async generateResponse(
     userMessage: string,
     context: ChatContext,
-    chatHistory: ChatMessage[] = []
   ): Promise<string> {
     try {
       // In a real implementation, this would make an actual API call to Gemini

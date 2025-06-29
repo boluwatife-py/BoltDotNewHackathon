@@ -12,6 +12,7 @@ type SupplementItem = {
   alerts?: SupplementAlert[];
   type: "default" | "gummy" | "liquid" | "powder" | "softgel" | "tablet";
   completed: boolean;
+  period: "Morning" | "Afternoon" | "Evening"; // Add period for filtering
 };
 
 interface SupplementCardProps {

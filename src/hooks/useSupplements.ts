@@ -29,32 +29,23 @@ export function useSupplements() {
       }
 
       const { data } = await supplementsAPI.getAll(token);
+      console.log("Raw supplement data from API:", data);
       
       // Transform backend data to frontend format
-      const transformedSupplements: SupplementItem[] = data.map((supplement: any) => {
+      const transformedSupplements: SupplementItem[] = [];
+      
+      data.forEach((supplement: any) => {
+        console.log(`Processing supplement: ${supplement.name}`);
+        
         // Parse times_of_day if it's a string
         let timesOfDay = supplement.times_of_day;
         if (typeof timesOfDay === 'string') {
           try {
             timesOfDay = JSON.parse(timesOfDay);
+            console.log(`Parsed times_of_day for ${supplement.name}:`, timesOfDay);
           } catch {
+            console.warn(`Failed to parse times_of_day for ${supplement.name}`);
             timesOfDay = {};
-          }
-        }
-
-        // Extract the first time from any period for display
-        let displayTime = "08:00"; // default
-        for (const period of ['Morning', 'Afternoon', 'Evening']) {
-          const times = timesOfDay[period];
-          if (times && times.length > 0) {
-            // Convert from Date string to HH:MM format
-            try {
-              const timeDate = new Date(times[0]);
-              displayTime = timeDate.toTimeString().slice(0, 5);
-              break;
-            } catch {
-              // Keep default time if parsing fails
-            }
           }
         }
 
@@ -69,26 +60,78 @@ export function useSupplements() {
         }
 
         // Generate tags from supplement data
-        const tags = [];
-        if (supplement.frequency) tags.push(`#${supplement.frequency.replace(/\s+/g, '')}`);
-        if (supplement.dosage_form) tags.push(`#${supplement.dosage_form}`);
-        if (interactions.length > 0) tags.push('#WithInstructions');
+        const tags: string[] = [];
+        
+        // Add frequency as a tag
+        if (supplement.frequency) {
+          tags.push(`#${supplement.frequency.replace(/\s+/g, '')}`);
+        }
+        
+        // Add interactions as tags (these are user instructions)
+        if (interactions && interactions.length > 0) {
+          interactions.forEach((interaction: string) => {
+            // Format interaction as a tag
+            const tagName = interaction.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
+            if (tagName) {
+              tags.push(`#${tagName}`);
+            }
+          });
+        }
 
-        return {
-          id: supplement.id,
-          time: displayTime,
-          name: supplement.name,
-          muted: !supplement.remind_me,
-          completed: false, // This would come from supplement logs in a real implementation
-          type: mapDosageFormToType(supplement.dosage_form),
-          tags,
-          alerts: interactions.length > 0 ? [{
-            message: interactions.join(', '),
-            type: "interaction" as const
-          }] : undefined
-        };
+        // Create a supplement item for each scheduled time
+        for (const [period, times] of Object.entries(timesOfDay)) {
+          if (Array.isArray(times) && times.length > 0 && 
+              (period === 'Morning' || period === 'Afternoon' || period === 'Evening')) {
+            
+            times.forEach((timeStr: string, index: number) => {
+              let displayTime = "08:00"; // default
+              
+              try {
+                console.log(`Processing time for ${supplement.name} ${period}:`, timeStr);
+                
+                // Handle different time formats
+                if (timeStr.includes('T')) {
+                  // ISO format: "2025-06-28T07:00:00.000Z"
+                  const timePart = timeStr.split('T')[1];
+                  if (timePart) {
+                    displayTime = timePart.split('.')[0].substring(0, 5); // Get HH:MM
+                  }
+                } else if (timeStr.includes(':')) {
+                  // Already in HH:MM format
+                  displayTime = timeStr.substring(0, 5);
+                } else {
+                  // Try to parse as Date
+                  const date = new Date(timeStr);
+                  if (!isNaN(date.getTime())) {
+                    displayTime = date.toTimeString().slice(0, 5);
+                  }
+                }
+                
+                console.log(`Extracted time for ${supplement.name} ${period}:`, displayTime);
+              } catch (error) {
+                console.warn(`Failed to parse time for ${supplement.name}:`, timeStr, error);
+              }
+
+              // Create unique supplement item with unique ID
+              const uniqueId = parseInt(`${supplement.id}${period.charCodeAt(0)}${index}`);
+              
+              transformedSupplements.push({
+                id: uniqueId, // Unique ID for each time slot
+                time: displayTime,
+                name: supplement.name,
+                muted: !supplement.remind_me,
+                completed: false, // Each time slot has its own completion state
+                type: mapDosageFormToType(supplement.dosage_form),
+                tags, // Now includes frequency and interactions as tags
+                alerts: undefined, // No alerts - interactions are now tags
+                period: period as 'Morning' | 'Afternoon' | 'Evening' // Add period for filtering
+              });
+            });
+          }
+        }
       });
       
+      console.log("Final transformed supplements:", transformedSupplements);
       setSupplements(transformedSupplements);
     } catch (err: any) {
       console.error("Error loading supplements:", err);
@@ -111,21 +154,28 @@ export function useSupplements() {
 
   const handleToggleMute = async (id: number) => {
     try {
-      const supplement = supplements.find(s => s.id === id);
-      if (!supplement) return;
-
+      // Find the supplement item
+      const supplementItem = supplements.find(s => s.id === id);
+      if (!supplementItem) return;
+      
+      // Find the original supplement ID more accurately
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
+      const { data } = await supplementsAPI.getAll(token);
+      const originalSupplement = data.find((s: any) => supplementItem.name === s.name);
+      
+      if (!originalSupplement) return;
+
       // Update in backend
-      await supplementsAPI.update(token, id, {
-        remind_me: supplement.muted // If currently muted, enable reminders
+      await supplementsAPI.update(token, originalSupplement.id, {
+        remind_me: supplementItem.muted // If currently muted, enable reminders
       });
 
-      // Update local state
+      // Update local state for all instances of this supplement
       setSupplements((prev) =>
         prev.map((item) =>
-          item.id === id && !item.completed
+          item.name === supplementItem.name && !item.completed
             ? { ...item, muted: !item.muted }
             : item
         )
@@ -136,15 +186,14 @@ export function useSupplements() {
   };
 
   const handleToggleCompleted = async (id: number) => {
-    // For now, just update local state
-    // In a full implementation, this would create/update supplement logs
+    // Update only the specific supplement item (unique time slot)
     setSupplements((prev) =>
       prev.map((item) =>
         item.id === id
           ? {
               ...item,
               completed: !item.completed,
-              muted: !item.completed ? true : item.muted,
+              muted: !item.completed ? true : item.muted, // Mute when completed
             }
           : item
       )

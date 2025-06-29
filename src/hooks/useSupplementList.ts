@@ -8,6 +8,7 @@ export function useSupplementList() {
   const [supplementList, setSupplementList] = useState<SupplementData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -16,7 +17,7 @@ export function useSupplementList() {
       setSupplementList([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]); // Add refreshTrigger to dependencies
 
   const loadSupplementList = async () => {
     try {
@@ -28,7 +29,9 @@ export function useSupplementList() {
         throw new Error("No authentication token");
       }
 
+      console.log('Loading supplement list...');
       const { data } = await supplementsAPI.getAll(token);
+      console.log('Raw supplement data from API:', data);
       
       // Transform backend data to frontend format
       const transformedSupplements: SupplementData[] = data.map((supplement: any) => {
@@ -94,6 +97,7 @@ export function useSupplementList() {
         };
       });
       
+      console.log('Transformed supplements:', transformedSupplements);
       setSupplementList(transformedSupplements);
     } catch (err: any) {
       console.error("Error loading supplement list:", err);
@@ -104,10 +108,23 @@ export function useSupplementList() {
     }
   };
 
+  const refetch = async () => {
+    console.log('Refetch called - forcing reload');
+    setRefreshTrigger(prev => prev + 1);
+    // Also immediately reload to ensure fresh data
+    await loadSupplementList();
+  };
+
+  const deleteSupplementFromList = (supplementId: number) => {
+    console.log(`Removing supplement ${supplementId} from local list`);
+    setSupplementList(prev => prev.filter(supp => supp.id !== supplementId));
+  };
+
   return {
     supplementList,
     isLoading,
     error,
-    refetch: loadSupplementList
+    refetch,
+    deleteSupplementFromList
   };
 }

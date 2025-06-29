@@ -57,13 +57,16 @@ const Scheduler: React.FC = () => {
     return null;
   };
 
-  const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") =>
-    supplements.filter((supp) => {
-      const hour = parseInt(supp.time.split(":")[0], 10);
-      if (slot === "morning") return hour < 12;
-      if (slot === "afternoon") return hour >= 12 && hour < 18;
-      return hour >= 18;
-    });
+  // Filter supplements by period using the period property
+  const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") => {
+    const periodMap = {
+      "morning": "Morning",
+      "afternoon": "Afternoon", 
+      "evening": "Evening"
+    };
+    
+    return supplements.filter((supp) => supp.period === periodMap[slot]);
+  };
 
   const morningSupplements = getSupplementsBySlot("morning");
   const afternoonSupplements = getSupplementsBySlot("afternoon");
