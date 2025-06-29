@@ -121,6 +121,10 @@ const Home: React.FC = () => {
   const afternoonSupplements = getSupplementsBySlot("afternoon");
   const eveningSupplements = getSupplementsBySlot("evening");
 
+  console.log("🌞 Morning supplements:", morningSupplements);
+  console.log("🌆 Afternoon supplements:", afternoonSupplements);
+  console.log("🌙 Evening supplements:", eveningSupplements);
+
   if (error) {
     return (
       <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)]">

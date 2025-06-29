@@ -31,6 +31,7 @@ export default function SuppIcon({
   iconType = "default",
   status,
 }: SuppIconProps) {
+  console.log(`🔍 Rendering SuppIcon with status=${status}, iconType=${iconType}`);
   const selectedIcon = iconMap[iconType];
   const iconBgColor =
     status === "missed" ? "bg-black/20" : "bg-[var(--primary-color)]";

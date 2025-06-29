@@ -6,6 +6,7 @@ interface BtnChecklistProps {
 }
 
 function ButtonChecklist({ onToggle, checked }: BtnChecklistProps) {
+  console.log(`🔘 Rendering ButtonChecklist with checked=${checked}`);
   return (
     <button
       className={`mt-2 w-[36px] h-[36px] flex items-center justify-center p-[0.375rem] rounded-full border-2 cursor-pointer transition-all duration-300 ${

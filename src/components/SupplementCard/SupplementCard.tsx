@@ -30,6 +30,7 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
     <div className="space-y-4">
       {supplements.map((supp) => {
         const displayStatus = getDisplayStatus(supp.time, supp.completed);
+        console.log(`🔍 Supplement ${supp.name} at ${supp.time} - completed: ${supp.completed}, status: ${displayStatus}`);
 
         // Determine background color based on status
         const bgColor = (() => {

@@ -60,7 +60,7 @@ export const HTTP_METHODS = {
   DELETE: 'DELETE',
 } as const;
 
-// Request timeout in milliseconds (10 seconds)
+// Request timeout in milliseconds (60 seconds)
 export const REQUEST_TIMEOUT = 60000;
 
 // Request headers
@@ -112,6 +112,11 @@ export const apiRequest = async (
     ...customHeaders,
   };
 
+  console.log(`🌐 API Request: ${method} ${endpoint}`);
+  if (body) {
+    console.log(`📦 Request body:`, body);
+  }
+
   // Create timeout controller
   const { controller, cleanup } = createTimeoutController(timeout);
 
@@ -141,6 +146,8 @@ export const apiRequest = async (
       data = await response.text();
     }
 
+    console.log(`✅ API Response (${response.status}):`, data);
+
     if (!response.ok) {
       throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
     }
@@ -152,17 +159,17 @@ export const apiRequest = async (
     
     // Handle timeout errors
     if (error.name === 'AbortError') {
-      console.error(`API request timeout: ${method} ${url}`);
+      console.error(`❌ API request timeout: ${method} ${url}`);
       throw new Error('Request timeout. Please check your internet connection and try again.');
     }
     
     // Handle network errors
     if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
-      console.error(`Network error: ${method} ${url}`, error);
+      console.error(`❌ Network error: ${method} ${url}`, error);
       throw new Error('Network error. Please check your internet connection and try again.');
     }
     
-    console.error(`API request failed: ${method} ${url}`, error);
+    console.error(`❌ API request failed: ${method} ${url}`, error);
     throw error;
   }
 };
