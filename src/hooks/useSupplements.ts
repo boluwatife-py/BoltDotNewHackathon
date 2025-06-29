@@ -81,7 +81,7 @@ export function useSupplements() {
           tags.push(`#${supplement.dosage_form}`);
         }
         
-        // Add interactions as tags (these are user instructions, not alerts)
+        // Add interactions as tags (these are user instructions)
         if (interactions && interactions.length > 0) {
           interactions.forEach((interaction: string) => {
             // Format interaction as a tag
@@ -92,35 +92,6 @@ export function useSupplements() {
           });
         }
 
-        // Generate alerts (these would be actual safety alerts, not user interactions)
-        const alerts = [];
-        
-        // Example: Check for potential drug interactions (this would come from a drug database)
-        // For now, we'll create alerts only for specific known interactions
-        if (interactions && interactions.length > 0) {
-          const hasAlcoholWarning = interactions.some((i: string) => 
-            i.toLowerCase().includes('alcohol')
-          );
-          
-          if (hasAlcoholWarning) {
-            alerts.push({
-              message: "Avoid alcohol while taking this supplement",
-              type: "interaction" as const
-            });
-          }
-          
-          const hasFoodRequirement = interactions.some((i: string) => 
-            i.toLowerCase().includes('food') || i.toLowerCase().includes('meal')
-          );
-          
-          if (hasFoodRequirement) {
-            alerts.push({
-              message: "Take with food for better absorption",
-              type: "interaction" as const
-            });
-          }
-        }
-
         return {
           id: supplement.id,
           time: displayTime,
@@ -128,8 +99,8 @@ export function useSupplements() {
           muted: !supplement.remind_me,
           completed: false, // This would come from supplement logs in a real implementation
           type: mapDosageFormToType(supplement.dosage_form),
-          tags, // Now includes frequency, dosage form, and interactions
-          alerts: alerts.length > 0 ? alerts : undefined // Only show if there are actual alerts
+          tags, // Now includes frequency, dosage form, and interactions as tags
+          alerts: undefined // No alerts - interactions are now tags
         };
       });
       
