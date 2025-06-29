@@ -8,7 +8,6 @@ export function useSupplements() {
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -17,11 +16,10 @@ export function useSupplements() {
       setSupplements([]);
       setIsLoading(false);
     }
-  }, [user, refreshTrigger]);
+  }, [user]);
 
   const loadSupplements = async () => {
     try {
-      setIsLoading(true);
       setError(null);
       
       const token = localStorage.getItem('access_token');
@@ -185,12 +183,7 @@ export function useSupplements() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      // Update in backend using the original supplement ID
-      await supplementsAPI.update(token, supplementItem.supplementId, {
-        remind_me: supplementItem.muted // If currently muted, enable reminders
-      });
-
-      // Update local state for all instances of this supplement
+      // Update local state immediately for better UX
       setSupplements((prev) =>
         prev.map((item) =>
           item.name === supplementItem.name && !item.completed
@@ -198,8 +191,16 @@ export function useSupplements() {
             : item
         )
       );
+
+      // Update in backend using the original supplement ID
+      await supplementsAPI.update(token, supplementItem.supplementId, {
+        remind_me: supplementItem.muted // If currently muted, enable reminders
+      });
+
     } catch (error) {
       console.error("Error toggling mute:", error);
+      // Revert the optimistic update on error
+      loadSupplements();
     }
   };
 
@@ -216,7 +217,7 @@ export function useSupplements() {
 
       console.log(`Toggling completion for supplement ${supplementItem.name} at ${supplementItem.time} to ${newStatus}`);
 
-      // Update local state immediately for better UX
+      // Update local state immediately for instant UI feedback
       setSupplements((prev) =>
         prev.map((item) =>
           item.id === id
@@ -229,33 +230,56 @@ export function useSupplements() {
         )
       );
 
-      // Update or create log entry
-      if (supplementItem.logId) {
-        // Update existing log
-        await supplementLogsAPI.updateLog(token, supplementItem.logId, {
-          status: newStatus,
-          taken_at: newCompletedStatus ? new Date().toISOString() : undefined
-        });
-      } else {
-        // Create new log entry
-        await supplementLogsAPI.markCompleted(token, {
-          supplement_id: supplementItem.supplementId,
-          scheduled_time: supplementItem.time,
-          status: newStatus
-        });
-      }
+      // Update or create log entry in background
+      try {
+        if (supplementItem.logId) {
+          // Update existing log
+          await supplementLogsAPI.updateLog(token, supplementItem.logId, {
+            status: newStatus,
+            taken_at: newCompletedStatus ? new Date().toISOString() : undefined
+          });
+        } else {
+          // Create new log entry
+          await supplementLogsAPI.markCompleted(token, {
+            supplement_id: supplementItem.supplementId,
+            scheduled_time: supplementItem.time,
+            status: newStatus
+          });
+        }
 
-      console.log(`Successfully updated completion status for ${supplementItem.name}`);
-      
-      // Force a refresh of the data after a short delay
-      setTimeout(() => {
-        setRefreshTrigger(prev => prev + 1);
-      }, 500);
+        console.log(`Successfully updated completion status for ${supplementItem.name}`);
+        
+        // Refresh data in background to sync with server
+        setTimeout(() => {
+          loadSupplements();
+        }, 1000);
+        
+      } catch (apiError) {
+        console.error("Error updating completion status:", apiError);
+        // Revert the optimistic update on API error
+        setSupplements((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  completed: !newCompletedStatus,
+                  muted: supplementItem.muted,
+                }
+              : item
+          )
+        );
+        alert("Failed to update completion status. Please try again.");
+      }
       
     } catch (error) {
       console.error("Error toggling completion:", error);
-      // Optionally show user-friendly error message
       alert("Failed to update completion status. Please try again.");
+    }
+  };
+
+  const refetch = () => {
+    if (!isLoading) {
+      loadSupplements();
     }
   };
 
@@ -265,6 +289,6 @@ export function useSupplements() {
     error,
     handleToggleMute,
     handleToggleCompleted,
-    refetch: () => setRefreshTrigger(prev => prev + 1),
+    refetch,
   };
 }

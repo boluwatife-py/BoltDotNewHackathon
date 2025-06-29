@@ -21,15 +21,6 @@ const Home: React.FC = () => {
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
   
-  // Auto-refresh supplements every 30 seconds
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      refetch();
-    }, 30000); // 30 seconds
-    
-    return () => clearInterval(intervalId);
-  }, [refetch]);
-  
   // Notification state
   const [notificationToast, setNotificationToast] = useState<{
     isVisible: boolean;

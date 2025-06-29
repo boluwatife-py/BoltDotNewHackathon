@@ -31,21 +31,20 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
       {supplements.map((supp) => {
         const displayStatus = getDisplayStatus(supp.time, supp.completed);
 
-        const bgColor =
-          displayStatus === "completed"
-            ? "bg-[var(--primary-dark)]"
-            : displayStatus === "current"
-            ? "bg-[var(--primary-dark)]"
-            : displayStatus === "missed"
-            ? "bg-[#CCCCCC]"
-            : "bg-white";
+        // Determine background color based on status
+        const bgColor = (() => {
+          if (displayStatus === "completed") return "bg-[var(--primary-dark)]";
+          if (displayStatus === "current") return "bg-[var(--primary-color)]";
+          if (displayStatus === "missed") return "bg-[#CCCCCC]";
+          return "bg-white";
+        })();
 
-        const textColor =
-          displayStatus === "missed"
-            ? "text-[var(--text-light)]"
-            : displayStatus === "completed" || displayStatus === "current"
-            ? "text-white"
-            : "text-[var(--text-primary)]";
+        // Determine text color based on status
+        const textColor = (() => {
+          if (displayStatus === "missed") return "text-[var(--text-light)]";
+          if (displayStatus === "completed" || displayStatus === "current") return "text-white";
+          return "text-[var(--text-primary)]";
+        })();
 
         return (
           <div
@@ -55,22 +54,23 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
             <SuppTime time={supp.time} />
 
             <div
-              className={`flex-1 rounded-xl shadow-sm relative transition ${bgColor} overflow-hidden`}
+              className={`flex-1 rounded-xl shadow-sm relative transition-all duration-300 ${bgColor} overflow-hidden`}
             >
               <div className="p-3">
                 <div className="flex items-start gap-2">
                   <SuppIcon status={displayStatus} iconType={supp.type} />
-                  <h3 className={`font-semibold text-base ${textColor}`}>
+                  <h3 className={`font-semibold text-base ${textColor} transition-colors duration-300`}>
                     {supp.name}
                   </h3>
                   <button
-                    className="ml-auto cursor-pointer"
+                    className="ml-auto cursor-pointer transition-opacity duration-300"
                     onClick={() => onToggleMute(supp.id)}
                     disabled={displayStatus === "completed" || displayStatus === "missed"}
                   >
                     <img
                       src={supp.muted ? BellOff : Bell}
                       alt="SafeDoser Bell"
+                      className={displayStatus === "completed" || displayStatus === "missed" ? "opacity-50" : ""}
                     />
                   </button>
                 </div>
@@ -80,9 +80,13 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
                     {supp.tags.map((tag, j) => (
                       <span
                         key={j}
-                        className={`text-xs rounded-full px-[0.625rem] py-[0.25rem] ${
+                        className={`text-xs rounded-full px-[0.625rem] py-[0.25rem] transition-all duration-300 ${
                           displayStatus === "missed"
                             ? "line-through bg-black/20 text-[var(--Secondary-text-primary)]"
+                            : displayStatus === "completed"
+                            ? "bg-white/20 text-white"
+                            : displayStatus === "current"
+                            ? "bg-white/20 text-white"
                             : "bg-[var(--primary-light)] text-[var(--primary-color)]"
                         }`}
                       >
@@ -101,17 +105,17 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
               <div className="">
                 {supp.alerts?.map((alert, j) => {
                   const isInteraction = alert.type === "interaction";
-                  const bgColor = isInteraction
+                  const alertBgColor = isInteraction
                     ? "bg-[#FFECCE]"
                     : "bg-[#FCD6D4]";
-                  const textColor = isInteraction
+                  const alertTextColor = isInteraction
                     ? "text-[#C46A00]"
                     : "text-[#B3261E]";
 
                   return (
                     <div
                       key={j}
-                      className={`flex items-start gap-2 px-2 py-1 text-sm w-full ${bgColor} ${textColor}`}
+                      className={`flex items-start gap-2 px-2 py-1 text-sm w-full ${alertBgColor} ${alertTextColor} transition-all duration-300`}
                     >
                       <span className="mt-[2px]">⚠️ {alert.message}</span>
                     </div>
