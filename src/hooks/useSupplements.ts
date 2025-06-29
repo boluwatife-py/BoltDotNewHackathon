@@ -8,6 +8,7 @@ export function useSupplements() {
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -16,7 +17,7 @@ export function useSupplements() {
       setSupplements([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const loadSupplements = async () => {
     try {
@@ -245,6 +246,12 @@ export function useSupplements() {
       );
 
       console.log(`Successfully updated completion status for ${supplementItem.name}`);
+      
+      // Force a refresh of the data after a short delay
+      setTimeout(() => {
+        setRefreshTrigger(prev => prev + 1);
+      }, 500);
+      
     } catch (error) {
       console.error("Error toggling completion:", error);
       // Optionally show user-friendly error message
@@ -258,6 +265,6 @@ export function useSupplements() {
     error,
     handleToggleMute,
     handleToggleCompleted,
-    refetch: loadSupplements,
+    refetch: () => setRefreshTrigger(prev => prev + 1),
   };
 }

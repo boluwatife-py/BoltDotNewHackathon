@@ -32,7 +32,9 @@ const SupplementCard: React.FC<SupplementCardProps> = ({
         const displayStatus = getDisplayStatus(supp.time, supp.completed);
 
         const bgColor =
-          displayStatus === "completed" || displayStatus === "current"
+          displayStatus === "completed"
+            ? "bg-[var(--primary-dark)]"
+            : displayStatus === "current"
             ? "bg-[var(--primary-dark)]"
             : displayStatus === "missed"
             ? "bg-[#CCCCCC]"
