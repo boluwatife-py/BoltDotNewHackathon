@@ -70,9 +70,56 @@ export function useSupplements() {
 
         // Generate tags from supplement data
         const tags = [];
-        if (supplement.frequency) tags.push(`#${supplement.frequency.replace(/\s+/g, '')}`);
-        if (supplement.dosage_form) tags.push(`#${supplement.dosage_form}`);
-        if (interactions.length > 0) tags.push('#WithInstructions');
+        
+        // Add frequency as a tag
+        if (supplement.frequency) {
+          tags.push(`#${supplement.frequency.replace(/\s+/g, '')}`);
+        }
+        
+        // Add dosage form as a tag
+        if (supplement.dosage_form) {
+          tags.push(`#${supplement.dosage_form}`);
+        }
+        
+        // Add interactions as tags (these are user instructions, not alerts)
+        if (interactions && interactions.length > 0) {
+          interactions.forEach((interaction: string) => {
+            // Format interaction as a tag
+            const tagName = interaction.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
+            if (tagName) {
+              tags.push(`#${tagName}`);
+            }
+          });
+        }
+
+        // Generate alerts (these would be actual safety alerts, not user interactions)
+        const alerts = [];
+        
+        // Example: Check for potential drug interactions (this would come from a drug database)
+        // For now, we'll create alerts only for specific known interactions
+        if (interactions && interactions.length > 0) {
+          const hasAlcoholWarning = interactions.some((i: string) => 
+            i.toLowerCase().includes('alcohol')
+          );
+          
+          if (hasAlcoholWarning) {
+            alerts.push({
+              message: "Avoid alcohol while taking this supplement",
+              type: "interaction" as const
+            });
+          }
+          
+          const hasFoodRequirement = interactions.some((i: string) => 
+            i.toLowerCase().includes('food') || i.toLowerCase().includes('meal')
+          );
+          
+          if (hasFoodRequirement) {
+            alerts.push({
+              message: "Take with food for better absorption",
+              type: "interaction" as const
+            });
+          }
+        }
 
         return {
           id: supplement.id,
@@ -81,11 +128,8 @@ export function useSupplements() {
           muted: !supplement.remind_me,
           completed: false, // This would come from supplement logs in a real implementation
           type: mapDosageFormToType(supplement.dosage_form),
-          tags,
-          alerts: interactions.length > 0 ? [{
-            message: interactions.join(', '),
-            type: "interaction" as const
-          }] : undefined
+          tags, // Now includes frequency, dosage form, and interactions
+          alerts: alerts.length > 0 ? alerts : undefined // Only show if there are actual alerts
         };
       });
       
