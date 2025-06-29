@@ -2,20 +2,24 @@ import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../UI/LoadingSpinner";
 import { type SupplementData } from "../../types/FormData";
+import { supplementsAPI } from "../../config/api";
 
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   supplement: SupplementData | null;
+  onSupplementDeleted?: () => void; // Add callback for deletion
 }
 
-export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheetProps) {
+export default function BottomSheet({ isOpen, onClose, supplement, onSupplementDeleted }: BottomSheetProps) {
   const navigate = useNavigate();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [translateY, setTranslateY] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Add mouse event listeners
   useEffect(() => {
@@ -195,6 +199,36 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
     });
   };
 
+  const handleDeleteSupplement = async () => {
+    if (!supplement || isDeleting) return;
+
+    setIsDeleting(true);
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error("No authentication token");
+      }
+
+      await supplementsAPI.delete(token, supplement.id);
+      
+      // Call the callback to refresh the supplement list
+      if (onSupplementDeleted) {
+        onSupplementDeleted();
+      }
+      
+      // Close the bottom sheet
+      onClose();
+      
+    } catch (error: any) {
+      console.error("Error deleting supplement:", error);
+      // You could show an error message here
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   // Helper function to format times of day for display
   const formatTimesOfDay = () => {
     const periods = [];
@@ -247,6 +281,51 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
         {isLoading ? (
           <div className="py-8">
             <LoadingSpinner text="Preparing supplement details..." />
+          </div>
+        ) : showDeleteConfirm ? (
+          /* Delete Confirmation */
+          <div className="py-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                Delete Supplement?
+              </h3>
+              <p className="text-[var(--text-secondary)] text-sm">
+                Are you sure you want to delete <strong>{supplement.name}</strong>? 
+                This action cannot be undone and will remove all associated data.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleDeleteSupplement}
+                disabled={isDeleting}
+                className={`w-full py-3 px-4 rounded-xl font-medium text-center transition-colors ${
+                  isDeleting
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-red-500 text-white hover:bg-red-600"
+                }`}
+              >
+                {isDeleting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </div>
+                ) : (
+                  "Yes, Delete Supplement"
+                )}
+              </button>
+              
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="w-full py-3 px-4 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-xl font-medium text-center hover:bg-[var(--primary-light)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -338,14 +417,24 @@ export default function BottomSheet({ isOpen, onClose, supplement }: BottomSheet
                 )}
               </div>
 
-              {/* Edit Button */}
-              <button
-                className="w-full mt-6 border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
-                onClick={handleEditDetails}
-                disabled={isLoading}
-              >
-                Edit Details
-              </button>
+              {/* Action Buttons */}
+              <div className="space-y-3 mt-6">
+                <button
+                  className="w-full border border-[var(--primary-color)] rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-[var(--text-primary)] hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={handleEditDetails}
+                  disabled={isLoading}
+                >
+                  Edit Details
+                </button>
+
+                <button
+                  className="w-full border border-red-500 rounded-[0.75rem] py-[1rem] px-[1.25rem] text-center font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isLoading}
+                >
+                  Delete Supplement
+                </button>
+              </div>
             </div>
           </>
         )}

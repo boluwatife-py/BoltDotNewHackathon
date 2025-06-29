@@ -31,6 +31,11 @@ export default function SupplementList() {
     setGlobalBottomSheetOpen(false);
   };
 
+  const handleSupplementDeleted = () => {
+    // Refresh the supplement list after deletion
+    refetch();
+  };
+
   const handleBackNavigation = () => {
     if (isBottomSheetOpen) {
       handleClose();
@@ -145,6 +150,7 @@ export default function SupplementList() {
         isOpen={isBottomSheetOpen}
         onClose={handleClose}
         supplement={selectedSupp}
+        onSupplementDeleted={handleSupplementDeleted}
       />
 
       <AddButton />
