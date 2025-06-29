@@ -1,8 +1,8 @@
 // API Configuration
 // This file centralizes all API-related configuration
 
-// Get API base URL from environment variable or use localhost
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Get API base URL from environment variable or use production URL
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com';
 
 // API endpoints
 export const API_ENDPOINTS = {
