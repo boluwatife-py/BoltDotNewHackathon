@@ -2,7 +2,7 @@
 // This file centralizes all API-related configuration
 
 // Get API base URL from environment variable or use production URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:8000';
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -61,7 +61,7 @@ export const HTTP_METHODS = {
 } as const;
 
 // Request timeout in milliseconds (10 seconds)
-export const REQUEST_TIMEOUT = 10000;
+export const REQUEST_TIMEOUT = 60000;
 
 // Request headers
 export const getAuthHeaders = (token?: string) => {
