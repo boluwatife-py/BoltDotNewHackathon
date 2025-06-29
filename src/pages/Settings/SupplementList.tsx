@@ -32,7 +32,8 @@ export default function SupplementList() {
   };
 
   const handleSupplementDeleted = () => {
-    // Refresh the supplement list after deletion
+    console.log('handleSupplementDeleted called - triggering refetch');
+    // Force a complete refresh of the supplement list
     refetch();
   };
 

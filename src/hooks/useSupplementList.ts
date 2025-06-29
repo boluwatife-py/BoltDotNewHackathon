@@ -8,6 +8,7 @@ export function useSupplementList() {
   const [supplementList, setSupplementList] = useState<SupplementData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -16,7 +17,7 @@ export function useSupplementList() {
       setSupplementList([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]); // Add refreshTrigger to dependencies
 
   const loadSupplementList = async () => {
     try {
@@ -104,10 +105,19 @@ export function useSupplementList() {
     }
   };
 
+  const refetch = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const deleteSupplementFromList = (supplementId: number) => {
+    setSupplementList(prev => prev.filter(supp => supp.id !== supplementId));
+  };
+
   return {
     supplementList,
     isLoading,
     error,
-    refetch: loadSupplementList
+    refetch,
+    deleteSupplementFromList
   };
 }

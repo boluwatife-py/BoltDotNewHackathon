@@ -34,6 +34,15 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
     }
   }, [isDragging, startY, translateY]);
 
+  // Reset states when sheet closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
   // Move the early return after all hooks are declared
   if (!isOpen || !supplement) return null;
 
@@ -210,15 +219,18 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
         throw new Error("No authentication token");
       }
 
+      console.log(`Deleting supplement with ID: ${supplement.id}`);
       await supplementsAPI.delete(token, supplement.id);
+      console.log('Supplement deleted successfully');
+      
+      // Close the bottom sheet first
+      onClose();
       
       // Call the callback to refresh the supplement list
       if (onSupplementDeleted) {
+        console.log('Calling onSupplementDeleted callback');
         onSupplementDeleted();
       }
-      
-      // Close the bottom sheet
-      onClose();
       
     } catch (error: any) {
       console.error("Error deleting supplement:", error);
