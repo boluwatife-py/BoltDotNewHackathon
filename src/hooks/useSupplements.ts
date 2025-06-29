@@ -20,6 +20,7 @@ export function useSupplements() {
 
   const loadSupplements = async () => {
     try {
+      setIsLoading(true);
       setError(null);
       
       const token = localStorage.getItem('access_token');
@@ -155,11 +156,11 @@ export function useSupplements() {
       
       console.log("Final transformed supplements:", transformedSupplements);
       setSupplements(transformedSupplements);
+      setIsLoading(false);
     } catch (err: any) {
       console.error("Error loading supplements:", err);
       setError(err.message || "Failed to load supplements");
       setSupplements([]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -240,11 +241,25 @@ export function useSupplements() {
           });
         } else {
           // Create new log entry
-          await supplementLogsAPI.markCompleted(token, {
+          const response = await supplementLogsAPI.markCompleted(token, {
             supplement_id: supplementItem.supplementId,
             scheduled_time: supplementItem.time,
             status: newStatus
           });
+          
+          // Update the local state with the new log ID
+          if (response.data && response.data.id) {
+            setSupplements((prev) =>
+              prev.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      logId: response.data.id
+                    }
+                  : item
+              )
+            );
+          }
         }
 
         console.log(`Successfully updated completion status for ${supplementItem.name}`);
@@ -278,9 +293,7 @@ export function useSupplements() {
   };
 
   const refetch = () => {
-    if (!isLoading) {
-      loadSupplements();
-    }
+    loadSupplements();
   };
 
   return {

@@ -95,6 +95,7 @@ const Home: React.FC = () => {
   const markSupplementCompleted = () => {
     if (notificationToast.supplement) {
       handleToggleCompleted(notificationToast.supplement.id);
+      closeNotificationToast();
     }
   };
 
