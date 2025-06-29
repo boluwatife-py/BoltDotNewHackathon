@@ -399,6 +399,140 @@ class Database:
             logger.error(f"Delete supplement error: {str(e)}")
             raise
     
+    # Supplement logs operations
+    async def create_supplement_log(self, log_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new supplement log"""
+        try:
+            logger.info(f"Creating supplement log for user {log_data.get('user_id')}")
+            logger.debug(f"Log data: {log_data}")
+            
+            # Add timestamp
+            log_data["created_at"] = datetime.utcnow().isoformat()
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
+            # Serialize the data
+            serialized_data = self._serialize_for_json(log_data)
+            
+            result = self.supabase.table("supplement_logs").insert(serialized_data).execute()
+            
+            if result.data:
+                logger.info(f"Supplement log created successfully: {result.data[0]['id']}")
+                return result.data[0]
+            else:
+                logger.error("Failed to create supplement log: No data returned")
+                raise Exception("Failed to create supplement log")
+                
+        except Exception as e:
+            logger.error(f"Create supplement log error: {str(e)}")
+            raise
+    
+    async def get_supplement_logs_by_date(self, user_id: str, target_date: date) -> List[Dict[str, Any]]:
+        """Get supplement logs for a specific date"""
+        try:
+            logger.debug(f"Getting supplement logs for user {user_id} on {target_date}")
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
+            # Get logs for the specific date
+            start_date = target_date.isoformat()
+            end_date = (target_date + timedelta(days=1)).isoformat()
+            
+            result = self.supabase.table("supplement_logs").select("*").eq("user_id", user_id).gte("created_at", start_date).lt("created_at", end_date).order("created_at", desc=False).execute()
+            
+            logs = result.data or []
+            logger.debug(f"Found {len(logs)} supplement logs for {target_date}")
+            
+            return logs
+            
+        except Exception as e:
+            logger.error(f"Get supplement logs by date error: {str(e)}")
+            raise
+    
+    async def get_supplement_log_by_id(self, log_id: str) -> Optional[Dict[str, Any]]:
+        """Get supplement log by ID"""
+        try:
+            logger.debug(f"Getting supplement log by ID: {log_id}")
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
+            result = self.supabase.table("supplement_logs").select("*").eq("id", log_id).execute()
+            
+            if result.data:
+                logger.debug(f"Supplement log found: {log_id}")
+                return result.data[0]
+            else:
+                logger.debug(f"No supplement log found with ID: {log_id}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Get supplement log by ID error: {str(e)}")
+            raise
+    
+    async def get_supplement_log_by_supplement_and_time(
+        self, 
+        user_id: str, 
+        supplement_id: int, 
+        scheduled_time: str, 
+        target_date: date
+    ) -> Optional[Dict[str, Any]]:
+        """Get supplement log by supplement ID and scheduled time for a specific date"""
+        try:
+            logger.debug(f"Getting supplement log for user {user_id}, supplement {supplement_id}, time {scheduled_time} on {target_date}")
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
+            # Get logs for the specific date
+            start_date = target_date.isoformat()
+            end_date = (target_date + timedelta(days=1)).isoformat()
+            
+            result = self.supabase.table("supplement_logs").select("*").eq("user_id", user_id).eq("supplement_id", supplement_id).eq("scheduled_time", scheduled_time).gte("created_at", start_date).lt("created_at", end_date).execute()
+            
+            if result.data:
+                logger.debug(f"Supplement log found for supplement {supplement_id} at {scheduled_time}")
+                return result.data[0]
+            else:
+                logger.debug(f"No supplement log found for supplement {supplement_id} at {scheduled_time}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Get supplement log by supplement and time error: {str(e)}")
+            raise
+    
+    async def update_supplement_log(self, log_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update supplement log"""
+        try:
+            logger.info(f"Updating supplement log {log_id}")
+            logger.debug(f"Update data: {update_data}")
+            
+            # Ensure Supabase client is initialized
+            if self.supabase is None:
+                self.supabase = create_client(str(self.supabase_url), str(self.supabase_key))
+            
+            # Serialize the data
+            serialized_data = self._serialize_for_json(update_data)
+            
+            result = self.supabase.table("supplement_logs").update(serialized_data).eq("id", log_id).execute()
+            
+            if result.data:
+                logger.info(f"Supplement log updated successfully: {log_id}")
+                return result.data[0]
+            else:
+                logger.error(f"Failed to update supplement log: {log_id}")
+                raise Exception("Failed to update supplement log")
+                
+        except Exception as e:
+            logger.error(f"Update supplement log error: {str(e)}")
+            raise
+    
     # Chat operations
     async def save_chat_message(self, user_id: str, sender: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Save a chat message"""

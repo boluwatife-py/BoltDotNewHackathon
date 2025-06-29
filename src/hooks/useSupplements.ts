@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { type SupplementItem } from "../types/Supplement";
-import { supplementsAPI } from "../config/api";
+import { type SupplementItem, type SupplementLog } from "../types/Supplement";
+import { supplementsAPI, supplementLogsAPI } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
 export function useSupplements() {
@@ -28,13 +28,29 @@ export function useSupplements() {
         throw new Error("No authentication token");
       }
 
-      const { data } = await supplementsAPI.getAll(token);
-      console.log("Raw supplement data from API:", data);
+      // Load both supplements and today's logs
+      const [supplementsResponse, logsResponse] = await Promise.all([
+        supplementsAPI.getAll(token),
+        supplementLogsAPI.getTodayLogs(token)
+      ]);
+
+      const supplementsData = supplementsResponse.data;
+      const logsData = logsResponse.data || [];
+      
+      console.log("Raw supplement data from API:", supplementsData);
+      console.log("Today's logs data:", logsData);
+      
+      // Create a map of logs by supplement_id and scheduled_time for quick lookup
+      const logsMap = new Map<string, SupplementLog>();
+      logsData.forEach((log: SupplementLog) => {
+        const key = `${log.supplement_id}-${log.scheduled_time}`;
+        logsMap.set(key, log);
+      });
       
       // Transform backend data to frontend format
       const transformedSupplements: SupplementItem[] = [];
       
-      data.forEach((supplement: any) => {
+      supplementsData.forEach((supplement: any) => {
         console.log(`Processing supplement: ${supplement.name}`);
         
         // Parse times_of_day if it's a string
@@ -112,6 +128,11 @@ export function useSupplements() {
                 console.warn(`Failed to parse time for ${supplement.name}:`, timeStr, error);
               }
 
+              // Check if there's a log for this supplement and time
+              const logKey = `${supplement.id}-${displayTime}`;
+              const log = logsMap.get(logKey);
+              const isCompleted = log?.status === 'taken';
+
               // Create unique supplement item with unique ID
               const uniqueId = parseInt(`${supplement.id}${period.charCodeAt(0)}${index}`);
               
@@ -120,11 +141,13 @@ export function useSupplements() {
                 time: displayTime,
                 name: supplement.name,
                 muted: !supplement.remind_me,
-                completed: false, // Each time slot has its own completion state
+                completed: isCompleted,
                 type: mapDosageFormToType(supplement.dosage_form),
                 tags, // Now includes frequency and interactions as tags
                 alerts: undefined, // No alerts - interactions are now tags
-                period: period as 'Morning' | 'Afternoon' | 'Evening' // Add period for filtering
+                period: period as 'Morning' | 'Afternoon' | 'Evening', // Add period for filtering
+                supplementId: supplement.id, // Store original supplement ID
+                logId: log?.id // Store log ID if exists
               });
             });
           }
@@ -158,20 +181,11 @@ export function useSupplements() {
       const supplementItem = supplements.find(s => s.id === id);
       if (!supplementItem) return;
 
-      // Extract original supplement ID from the unique ID
-      const originalSupplementId = Math.floor(id / 1000); // Rough extraction
-      
-      // Find the original supplement ID more accurately
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const { data } = await supplementsAPI.getAll(token);
-      const originalSupplement = data.find((s: any) => supplementItem.name === s.name);
-      
-      if (!originalSupplement) return;
-
-      // Update in backend
-      await supplementsAPI.update(token, originalSupplement.id, {
+      // Update in backend using the original supplement ID
+      await supplementsAPI.update(token, supplementItem.supplementId, {
         remind_me: supplementItem.muted // If currently muted, enable reminders
       });
 
@@ -189,18 +203,53 @@ export function useSupplements() {
   };
 
   const handleToggleCompleted = async (id: number) => {
-    // Update only the specific supplement item (unique time slot)
-    setSupplements((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              completed: !item.completed,
-              muted: !item.completed ? true : item.muted, // Mute when completed
-            }
-          : item
-      )
-    );
+    try {
+      const supplementItem = supplements.find(s => s.id === id);
+      if (!supplementItem) return;
+
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const newCompletedStatus = !supplementItem.completed;
+      const newStatus = newCompletedStatus ? 'taken' : 'pending';
+
+      console.log(`Toggling completion for supplement ${supplementItem.name} at ${supplementItem.time} to ${newStatus}`);
+
+      // Update or create log entry
+      if (supplementItem.logId) {
+        // Update existing log
+        await supplementLogsAPI.updateLog(token, supplementItem.logId, {
+          status: newStatus,
+          taken_at: newCompletedStatus ? new Date().toISOString() : undefined
+        });
+      } else {
+        // Create new log entry
+        await supplementLogsAPI.markCompleted(token, {
+          supplement_id: supplementItem.supplementId,
+          scheduled_time: supplementItem.time,
+          status: newStatus
+        });
+      }
+
+      // Update local state
+      setSupplements((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                completed: newCompletedStatus,
+                muted: newCompletedStatus ? true : item.muted, // Mute when completed
+              }
+            : item
+        )
+      );
+
+      console.log(`Successfully updated completion status for ${supplementItem.name}`);
+    } catch (error) {
+      console.error("Error toggling completion:", error);
+      // Optionally show user-friendly error message
+      alert("Failed to update completion status. Please try again.");
+    }
   };
 
   return {

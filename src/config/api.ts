@@ -28,6 +28,14 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/supplements/${id}`,
   },
   
+  // Supplement logs
+  SUPPLEMENT_LOGS: {
+    BASE: '/supplement-logs',
+    BY_ID: (id: string) => `/supplement-logs/${id}`,
+    MARK_COMPLETED: '/supplement-logs/mark-completed',
+    TODAY: '/supplement-logs/today',
+  },
+  
   // Chat
   CHAT: {
     SEND: '/chat',
@@ -247,6 +255,32 @@ export const supplementsAPI = {
       method: HTTP_METHODS.DELETE,
       token,
     }),
+};
+
+export const supplementLogsAPI = {
+  getTodayLogs: (token: string) =>
+    apiRequest(API_ENDPOINTS.SUPPLEMENT_LOGS.TODAY, { token }),
+
+  markCompleted: (token: string, logData: {
+    supplement_id: number;
+    scheduled_time: string;
+    status: 'taken' | 'missed' | 'skipped';
+    notes?: string;
+  }) => apiRequest(API_ENDPOINTS.SUPPLEMENT_LOGS.MARK_COMPLETED, {
+    method: HTTP_METHODS.POST,
+    body: logData,
+    token,
+  }),
+
+  updateLog: (token: string, logId: string, updateData: {
+    status?: 'pending' | 'taken' | 'missed' | 'skipped';
+    taken_at?: string;
+    notes?: string;
+  }) => apiRequest(API_ENDPOINTS.SUPPLEMENT_LOGS.BY_ID(logId), {
+    method: HTTP_METHODS.PUT,
+    body: updateData,
+    token,
+  }),
 };
 
 export const chatAPI = {
