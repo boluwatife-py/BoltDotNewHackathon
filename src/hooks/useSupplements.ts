@@ -8,6 +8,7 @@ export function useSupplements() {
   const [supplements, setSupplements] = useState<SupplementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -16,7 +17,7 @@ export function useSupplements() {
       setSupplements([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const loadSupplements = async () => {
     try {
@@ -46,7 +47,7 @@ export function useSupplements() {
       const logsMap = new Map<string, SupplementLog>();
       logsData.forEach((log: SupplementLog) => {
         const key = `${log.supplement_id}-${log.scheduled_time}`;
-        console.log(`🔑 Creating log map key: ${key}, status: ${log.status}`);
+        console.log(`🔑 Creating log map key: ${key}, status: ${log.status}, id: ${log.id}`);
         logsMap.set(key, log);
       });
       
@@ -137,12 +138,13 @@ export function useSupplements() {
               const log = logsMap.get(logKey);
               
               if (log) {
-                console.log(`✅ Found log for ${supplement.name} at ${displayTime}, status: ${log.status}`);
+                console.log(`✅ Found log for ${supplement.name} at ${displayTime}, status: ${log.status}, id: ${log.id}`);
               } else {
                 console.log(`❌ No log found for ${supplement.name} at ${displayTime}`);
               }
               
               const isCompleted = log?.status === 'taken';
+              console.log(`🏁 Supplement ${supplement.name} at ${displayTime} completed: ${isCompleted}`);
 
               // Create unique supplement item with unique ID
               const uniqueId = parseInt(`${supplement.id}${period.charCodeAt(0)}${index}`);
@@ -253,13 +255,16 @@ export function useSupplements() {
 
       // Update or create log entry in background
       try {
+        let responseData;
+        
         if (supplementItem.logId) {
           console.log(`🔄 Updating existing log ${supplementItem.logId}`);
           const response = await supplementLogsAPI.updateLog(token, supplementItem.logId, {
             status: newStatus,
             taken_at: newCompletedStatus ? new Date().toISOString() : undefined
           });
-          console.log(`✅ Log updated successfully:`, response.data);
+          responseData = response.data;
+          console.log(`✅ Log updated successfully:`, responseData);
         } else {
           console.log(`🔄 Creating new log for supplement ${supplementItem.supplementId} at ${supplementItem.time}`);
           const response = await supplementLogsAPI.markCompleted(token, {
@@ -268,22 +273,23 @@ export function useSupplements() {
             status: newStatus
           });
           
-          console.log(`✅ New log created:`, response.data);
-          
-          // Update the local state with the new log ID
-          if (response.data && response.data.id) {
-            console.log(`📝 Storing new log ID: ${response.data.id}`);
-            setSupplements((prev) =>
-              prev.map((item) =>
-                item.id === id
-                  ? {
-                      ...item,
-                      logId: response.data.id
-                    }
-                  : item
-              )
-            );
-          }
+          responseData = response.data;
+          console.log(`✅ New log created:`, responseData);
+        }
+        
+        // Update the local state with the log ID
+        if (responseData && responseData.id) {
+          console.log(`📝 Storing log ID: ${responseData.id}`);
+          setSupplements((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    logId: responseData.id
+                  }
+                : item
+            )
+          );
         }
 
         console.log(`✅ Successfully updated completion status for ${supplementItem.name}`);
@@ -291,7 +297,7 @@ export function useSupplements() {
         // Refresh data in background to sync with server
         setTimeout(() => {
           console.log(`🔄 Refreshing data after completion toggle`);
-          loadSupplements();
+          setRefreshTrigger(prev => prev + 1);
         }, 1000);
         
       } catch (apiError) {
@@ -319,7 +325,7 @@ export function useSupplements() {
 
   const refetch = () => {
     console.log(`🔄 Manual refetch triggered`);
-    loadSupplements();
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return {
