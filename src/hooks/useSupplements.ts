@@ -303,11 +303,11 @@ export function useSupplements() {
               : item
           )
         );
-        alert("Failed to update completion status. Please try again.");
+        console.error("Failed to update completion status:", apiError);
       }
       
     } catch (error) {
-      alert("Failed to update completion status. Please try again.");
+      console.error("Error toggling completion status:", error);
     }
   };
 

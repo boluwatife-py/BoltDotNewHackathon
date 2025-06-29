@@ -10,6 +10,7 @@ import NotificationPermissionBanner from "../components/UI/NotificationPermissio
 import { useSupplements } from "../hooks/useSupplements";
 import { useNotifications } from "../hooks/useNotifications";
 import { type SupplementItem } from "../types/Supplement";
+import { useUser } from "../context/UserContext";
 
 const Home: React.FC = () => {
   const today = new Date();
@@ -20,6 +21,7 @@ const Home: React.FC = () => {
   });
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  const { refreshStats } = useUser() as { refreshStats?: () => void };
   const autoRefreshTimerRef = useRef<number | null>(null);
   
   // Auto-refresh supplements every 5 minutes instead of every minute
@@ -32,6 +34,7 @@ const Home: React.FC = () => {
     // Set up new timer
     autoRefreshTimerRef.current = window.setInterval(() => {
       refetch();
+      if (refreshStats) refreshStats();
     }, 5 * 60 * 1000); // 5 minutes
     
     // Clean up timer on unmount
@@ -41,7 +44,7 @@ const Home: React.FC = () => {
         autoRefreshTimerRef.current = null;
       }
     };
-  }, [refetch]);
+  }, [refetch, refreshStats]);
   
   // Notification state
   const [notificationToast, setNotificationToast] = useState<{
@@ -114,10 +117,13 @@ const Home: React.FC = () => {
   };
 
   // Mark supplement as completed from notification
-  const markSupplementCompleted = () => {
+  const markSupplementCompleted = async () => {
     if (notificationToast.supplement) {
-      handleToggleCompleted(notificationToast.supplement.id);
+      await handleToggleCompleted(notificationToast.supplement.id);
       closeNotificationToast();
+      
+      // Refresh user stats after marking as completed
+      if (refreshStats) refreshStats();
     }
   };
 
@@ -142,6 +148,16 @@ const Home: React.FC = () => {
   const morningSupplements = getSupplementsBySlot("morning");
   const afternoonSupplements = getSupplementsBySlot("afternoon");
   const eveningSupplements = getSupplementsBySlot("evening");
+
+  // Custom toggle completed handler that also refreshes user stats
+  const handleToggleCompletedWithRefresh = async (id: number) => {
+    await handleToggleCompleted(id);
+    
+    // Refresh user stats after toggling completion
+    if (refreshStats) {
+      setTimeout(() => refreshStats(), 300); // Small delay to ensure backend update completes
+    }
+  };
 
   if (error) {
     return (
@@ -209,7 +225,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={morningSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}
@@ -220,7 +236,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={afternoonSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}
@@ -231,7 +247,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={eveningSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}

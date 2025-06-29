@@ -8,11 +8,13 @@ import TimeLineTime from "../components/UI/TimeLineTime";
 import LoadingSpinner from "../components/UI/LoadingSpinner";
 import LoadingCard from "../components/UI/LoadingCard";
 import { useSupplements } from "../hooks/useSupplements";
+import { useUser } from "../context/UserContext";
 
 const Scheduler: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  const { refreshStats } = useUser() as { refreshStats?: () => void };
   const hasInitializedRef = useRef(false);
 
   const monthStart = startOfMonth(currentDate);
@@ -92,6 +94,16 @@ const Scheduler: React.FC = () => {
       return "Today";
     }
     return format(date, "MMMM d");
+  };
+
+  // Custom toggle completed handler that also refreshes user stats
+  const handleToggleCompletedWithRefresh = async (id: number) => {
+    await handleToggleCompleted(id);
+    
+    // Refresh user stats after toggling completion
+    if (refreshStats) {
+      setTimeout(() => refreshStats(), 300); // Small delay to ensure backend update completes
+    }
   };
 
   return (
@@ -238,7 +250,7 @@ const Scheduler: React.FC = () => {
                     <SupplementCard
                       supplements={morningSupplements}
                       onToggleMute={handleToggleMute}
-                      onToggleCompleted={handleToggleCompleted}
+                      onToggleCompleted={handleToggleCompletedWithRefresh}
                     />
                   </div>
                 </>
@@ -252,7 +264,7 @@ const Scheduler: React.FC = () => {
                     <SupplementCard
                       supplements={afternoonSupplements}
                       onToggleMute={handleToggleMute}
-                      onToggleCompleted={handleToggleCompleted}
+                      onToggleCompleted={handleToggleCompletedWithRefresh}
                     />
                   </div>
                 </>
@@ -266,7 +278,7 @@ const Scheduler: React.FC = () => {
                     <SupplementCard
                       supplements={eveningSupplements}
                       onToggleMute={handleToggleMute}
-                      onToggleCompleted={handleToggleCompleted}
+                      onToggleCompleted={handleToggleCompletedWithRefresh}
                     />
                   </div>
                 </>

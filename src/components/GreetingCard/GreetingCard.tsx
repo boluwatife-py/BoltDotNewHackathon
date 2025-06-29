@@ -1,8 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 
 const GreetingCard: React.FC = () => {
-  const { name, completedDoses, totalDoses, avatarUrl } = useUser();
+  const user = useUser();
+  const { name, completedDoses, totalDoses, avatarUrl, refreshStats } = user as {
+    name: string;
+    completedDoses: number;
+    totalDoses: number;
+    avatarUrl?: string;
+    refreshStats?: () => void;
+  };
+
+  // Refresh stats when component mounts
+  useEffect(() => {
+    if (refreshStats) {
+      refreshStats();
+    }
+  }, [refreshStats]);
 
   return (
     <div className="flex items-center px-[var-(--lg)] py-[var(--md)] gap-[var(--md)]">
@@ -15,7 +29,9 @@ const GreetingCard: React.FC = () => {
       </div>
       <div className="flex flex-col text-[var(--text-primary)]">
         <p>Hello, {name}!</p>
-        <span className="text-[12px] font-medium text-[var(--text-light)]">You’ve completed {completedDoses}/{totalDoses} doses today.</span>
+        <span className="text-[12px] font-medium text-[var(--text-light)]">
+          You've completed {completedDoses}/{totalDoses} doses today.
+        </span>
       </div>
     </div>
   );
