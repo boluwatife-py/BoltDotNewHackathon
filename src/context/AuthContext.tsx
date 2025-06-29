@@ -14,6 +14,7 @@ interface User {
   age: number;
   avatarUrl?: string;
   email_verified?: boolean;
+  created_at?: string; // Add created_at field to track signup date
 }
 
 interface AuthContextType {
@@ -102,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           age: data.user.age,
           avatarUrl: data.user.avatar_url,
           email_verified: data.user.email_verified,
+          created_at: data.user.created_at, // Store the created_at date
         });
         
         console.log("👤 User authenticated successfully");
@@ -206,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: data.user.age,
         avatarUrl: data.user.avatar_url,
         email_verified: data.user.email_verified,
+        created_at: data.user.created_at, // Store the created_at date
       });
 
       console.log("✅ Login successful");
@@ -313,6 +316,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: data.user.age,
         avatarUrl: data.user.avatar_url,
         email_verified: data.user.email_verified,
+        created_at: data.user.created_at, // Store the created_at date
       });
 
       console.log("✅ Signup successful");
@@ -460,6 +464,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: profileData.user.age,
         avatarUrl: profileData.user.avatar_url,
         email_verified: profileData.user.email_verified,
+        created_at: profileData.user.created_at, // Preserve the created_at date
       });
 
       return { success: true };

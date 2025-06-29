@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isFuture } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isFuture, isBefore, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import HeadInfo from "../components/UI/HeadInfo";
 import AddButton from "../components/NewSupp";
@@ -9,13 +9,19 @@ import LoadingSpinner from "../components/UI/LoadingSpinner";
 import LoadingCard from "../components/UI/LoadingCard";
 import { useSupplements } from "../hooks/useSupplements";
 import { useUser } from "../context/UserContext";
+import { useAuth } from "../context/AuthContext";
+import { supplementLogsAPI } from "../config/api";
 
 const Scheduler: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
   const { refreshStats } = useUser() as { refreshStats?: () => void };
+  const { user } = useAuth();
   const hasInitializedRef = useRef(false);
+  const [supplementLogs, setSupplementLogs] = useState<Record<string, string>>({});
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [signupDate, setSignupDate] = useState<Date | null>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -23,19 +29,109 @@ const Scheduler: React.FC = () => {
   const calendarEnd = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Only load data once when component mounts
+  // Get user's signup date and historical logs
   useEffect(() => {
-    if (!hasInitializedRef.current) {
+    if (!hasInitializedRef.current && user) {
       hasInitializedRef.current = true;
+      
+      // Set signup date from user's created_at if available, otherwise use 30 days ago
+      if (user.created_at) {
+        try {
+          setSignupDate(parseISO(user.created_at));
+        } catch (error) {
+          // If parsing fails, default to 30 days ago
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          setSignupDate(thirtyDaysAgo);
+        }
+      } else {
+        // Default to 30 days ago if no created_at date
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        setSignupDate(thirtyDaysAgo);
+      }
+      
+      // Load historical logs for the current month
+      loadHistoricalLogs(currentDate);
     }
-  }, []);
+  }, [user]);
+
+  // Load historical logs when month changes
+  useEffect(() => {
+    if (user) {
+      loadHistoricalLogs(currentDate);
+    }
+  }, [currentDate, user]);
+
+  // Load historical logs for a given month
+  const loadHistoricalLogs = async (date: Date) => {
+    try {
+      setIsLoadingLogs(true);
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      // In a real implementation, you would have an API endpoint to get logs for a specific month
+      // For now, we'll use the today's logs endpoint and simulate historical data
+      const { data } = await supplementLogsAPI.getTodayLogs(token);
+      
+      // Process logs into a map of date -> status
+      const newLogs: Record<string, string> = {};
+      
+      // Add today's actual logs
+      if (data && Array.isArray(data)) {
+        data.forEach((log: any) => {
+          const today = new Date().toISOString().split('T')[0];
+          newLogs[today] = log.status === 'taken' ? 'taken' : 'missed';
+        });
+      }
+      
+      // Simulate historical data for the current month
+      // In a real implementation, this would come from the backend
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      const today = new Date();
+      
+      // Only generate historical data for dates before today
+      for (let day = new Date(monthStart); day <= monthEnd && day < today; day.setDate(day.getDate() + 1)) {
+        const dateStr = day.toISOString().split('T')[0];
+        
+        // Skip if we already have data for this date
+        if (newLogs[dateStr]) continue;
+        
+        // Skip dates before signup
+        if (signupDate && isBefore(day, signupDate)) continue;
+        
+        // Generate realistic pattern - more likely to be taken than missed
+        const dayOfMonth = day.getDate();
+        const dayOfWeek = day.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          // Weekends have higher chance of being missed
+          newLogs[dateStr] = Math.random() < 0.3 ? 'taken' : 'missed';
+        } else if (dayOfMonth % 10 === 0) {
+          // Every 10th day is missed (simulating occasional forgetfulness)
+          newLogs[dateStr] = 'missed';
+        } else {
+          // Most weekdays are taken
+          newLogs[dateStr] = Math.random() < 0.85 ? 'taken' : 'missed';
+        }
+      }
+      
+      setSupplementLogs(newLogs);
+    } catch (error) {
+      console.error("Error loading historical logs:", error);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
 
   // Get supplement status for a specific date
   const getSupplementStatusForDate = (date: Date): "taken" | "missed" | null => {
-    const isCurrentMonth = date.getMonth() === currentDate.getMonth();
+    // No dots for future dates
+    if (isFuture(date)) return null;
     
-    // No dots for future dates or dates outside current month
-    if (!isCurrentMonth || isFuture(date)) return null;
+    // No dots for dates before signup
+    if (signupDate && isBefore(date, signupDate)) return null;
     
     // For today, check actual supplement completion status
     if (isToday(date)) {
@@ -48,22 +144,11 @@ const Scheduler: React.FC = () => {
       return null;
     }
     
-    // For past dates, simulate realistic supplement history
-    const dayOfMonth = date.getDate();
+    // For past dates, use the historical logs
+    const dateStr = date.toISOString().split('T')[0];
+    if (supplementLogs[dateStr] === 'taken') return "taken";
+    if (supplementLogs[dateStr] === 'missed') return "missed";
     
-    // Create a realistic pattern where most days are taken, some are missed
-    if (dayOfMonth % 7 === 0) {
-      // Every 7th day might be missed (weekend forgetfulness)
-      return "missed";
-    } else if (dayOfMonth % 3 === 0) {
-      // Every 3rd day is taken
-      return "taken";
-    } else if (dayOfMonth % 5 === 0) {
-      // Every 5th day is taken
-      return "taken";
-    }
-    
-    // Most other past days have no supplements scheduled
     return null;
   };
 
@@ -104,6 +189,11 @@ const Scheduler: React.FC = () => {
     if (refreshStats) {
       setTimeout(() => refreshStats(), 300); // Small delay to ensure backend update completes
     }
+  };
+
+  // Check if a date is before the signup date
+  const isBeforeSignup = (date: Date): boolean => {
+    return signupDate ? isBefore(date, signupDate) : false;
   };
 
   return (
@@ -150,13 +240,17 @@ const Scheduler: React.FC = () => {
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
               const isSelected = isSameDay(day, selectedDate);
               const isTodayDate = isToday(day);
+              const isDisabled = isBeforeSignup(day);
 
               return (
                 <button
                   key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
+                  onClick={() => !isDisabled && setSelectedDate(day)}
+                  disabled={isDisabled}
                   className={`relative p-2 min-h-[2.5rem] text-center rounded-lg transition-colors ${
-                    isSelected
+                    isDisabled
+                      ? "opacity-30 cursor-not-allowed"
+                      : isSelected
                       ? "bg-[var(--primary-color)] text-white"
                       : isTodayDate
                       ? "bg-[var(--primary-light)] text-[var(--primary-color)]"
@@ -169,8 +263,8 @@ const Scheduler: React.FC = () => {
                     {format(day, "d")}
                   </span>
                   
-                  {/* Single supplement indicator */}
-                  {supplementStatus && (
+                  {/* Supplement indicator */}
+                  {supplementStatus && !isDisabled && (
                     <div className="flex justify-center mt-1">
                       <div
                         className={`w-1.5 h-1.5 rounded-full ${
@@ -221,7 +315,7 @@ const Scheduler: React.FC = () => {
             )}
           </div>
 
-          {isLoading ? (
+          {isLoading || isLoadingLogs ? (
             <div className="space-y-6">
               <LoadingSpinner text="Loading schedule..." />
               <div className="space-y-4">
