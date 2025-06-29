@@ -34,10 +34,10 @@ class OAuthService:
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         # Use environment variable or default to localhost for development
-        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://safedoser.netlify.app/auth/google/callback")
         
         # Frontend URL for redirects - this should be the WebContainer URL
-        self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        self.frontend_url = os.getenv("FRONTEND_URL", "https://safedoser.netlify.app")
         
         # OAuth endpoints
         self.google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
