@@ -37,7 +37,7 @@ export default function SuppIcon({
 
   return (
     <div
-      className={`text-2xl p-[12px] rounded-[12px] w-[48px] h-[48px] flex items-center justify-center ${iconBgColor}`}
+      className={`text-2xl p-[12px] rounded-[12px] w-[48px] h-[48px] flex items-center justify-center ${iconBgColor} transition-colors duration-300`}
     >
       <img src={selectedIcon} alt={`Supplement icon ${iconType}`} />
     </div>
