@@ -98,7 +98,7 @@ export function useSupplements() {
         }
 
         // Generate tags from supplement data
-        const tags = [];
+        const tags: string[] = [];
         
         // Add frequency as a tag
         if (supplement.frequency) {
@@ -241,7 +241,7 @@ export function useSupplements() {
       }
 
       const newCompletedStatus = !supplementItem.completed;
-      const newStatus = newCompletedStatus ? 'taken' : 'pending';
+      const newStatus = newCompletedStatus ? 'taken' : 'missed';
 
       // Update local state immediately for instant UI feedback
       setSupplements((prev) =>
