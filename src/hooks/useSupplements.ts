@@ -32,40 +32,78 @@ export function useSupplements() {
       
       // Transform backend data to frontend format
       const transformedSupplements: SupplementItem[] = data.map((supplement: any) => {
+        console.log("Processing supplement:", supplement.name);
+        console.log("Raw times_of_day:", supplement.times_of_day);
+        
         // Parse times_of_day if it's a string
         let timesOfDay = supplement.times_of_day;
         if (typeof timesOfDay === 'string') {
           try {
             timesOfDay = JSON.parse(timesOfDay);
+            console.log("Parsed times_of_day:", timesOfDay);
           } catch {
+            console.warn("Failed to parse times_of_day, using empty object");
             timesOfDay = {};
           }
         }
 
-        // Extract the first time from any period for display
+        // Extract the first available time for display
         let displayTime = "08:00"; // default
+        
+        // Check each period for available times
         for (const period of ['Morning', 'Afternoon', 'Evening']) {
           const times = timesOfDay[period];
-          if (times && times.length > 0) {
-            // Convert from Date string to HH:MM format
+          if (times && Array.isArray(times) && times.length > 0) {
             try {
-              const timeDate = new Date(times[0]);
-              displayTime = timeDate.toTimeString().slice(0, 5);
-              break;
-            } catch {
-              // Keep default time if parsing fails
+              // Handle ISO string format: "2025-06-28T07:00:00.000Z"
+              const timeString = times[0];
+              console.log(`Processing ${period} time:`, timeString);
+              
+              if (typeof timeString === 'string') {
+                // If it's an ISO string, extract the time part
+                if (timeString.includes('T')) {
+                  const timePart = timeString.split('T')[1]; // Get "07:00:00.000Z"
+                  const timeOnly = timePart.split('.')[0]; // Get "07:00:00"
+                  displayTime = timeOnly.substring(0, 5); // Get "07:00"
+                  console.log(`Extracted time for ${period}:`, displayTime);
+                  break;
+                } else {
+                  // If it's already in HH:MM format
+                  displayTime = timeString.substring(0, 5);
+                  console.log(`Using direct time for ${period}:`, displayTime);
+                  break;
+                }
+              } else if (timeString instanceof Date) {
+                // If it's a Date object
+                displayTime = timeString.toTimeString().slice(0, 5);
+                console.log(`Converted Date to time for ${period}:`, displayTime);
+                break;
+              }
+            } catch (error) {
+              console.warn(`Error processing time for ${period}:`, error);
+              // Continue to next period
             }
           }
         }
+
+        console.log(`Final display time for ${supplement.name}:`, displayTime);
 
         // Parse interactions if it's a string
         let interactions = supplement.interactions;
         if (typeof interactions === 'string') {
           try {
             interactions = JSON.parse(interactions);
+            console.log("Parsed interactions:", interactions);
           } catch {
+            console.warn("Failed to parse interactions, using empty array");
             interactions = [];
           }
+        }
+
+        // Ensure interactions is an array
+        if (!Array.isArray(interactions)) {
+          console.warn("Interactions is not an array, using empty array");
+          interactions = [];
         }
 
         // Generate tags from supplement data
@@ -92,6 +130,8 @@ export function useSupplements() {
           });
         }
 
+        console.log(`Generated tags for ${supplement.name}:`, tags);
+
         return {
           id: supplement.id,
           time: displayTime,
@@ -104,6 +144,7 @@ export function useSupplements() {
         };
       });
       
+      console.log("Final transformed supplements:", transformedSupplements);
       setSupplements(transformedSupplements);
     } catch (err: any) {
       console.error("Error loading supplements:", err);
