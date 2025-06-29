@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import GreetingCard from "../components/GreetingCard/GreetingCard";
 import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
@@ -20,15 +20,27 @@ const Home: React.FC = () => {
   });
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  const autoRefreshTimerRef = useRef<number | null>(null);
   
-  // Auto-refresh supplements every minute
+  // Auto-refresh supplements every 5 minutes instead of every minute
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log("🔄 Auto-refreshing supplements");
-      refetch();
-    }, 60000); // 60 seconds
+    // Clear any existing timer when component mounts or refreshTrigger changes
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+    }
     
-    return () => clearInterval(intervalId);
+    // Set up new timer
+    autoRefreshTimerRef.current = window.setInterval(() => {
+      refetch();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Clean up timer on unmount
+    return () => {
+      if (autoRefreshTimerRef.current) {
+        clearInterval(autoRefreshTimerRef.current);
+        autoRefreshTimerRef.current = null;
+      }
+    };
   }, [refetch]);
   
   // Notification state
@@ -130,10 +142,6 @@ const Home: React.FC = () => {
   const morningSupplements = getSupplementsBySlot("morning");
   const afternoonSupplements = getSupplementsBySlot("afternoon");
   const eveningSupplements = getSupplementsBySlot("evening");
-
-  console.log("🌞 Morning supplements:", morningSupplements);
-  console.log("🌆 Afternoon supplements:", afternoonSupplements);
-  console.log("🌙 Evening supplements:", eveningSupplements);
 
   if (error) {
     return (

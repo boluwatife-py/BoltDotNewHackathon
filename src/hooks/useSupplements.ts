@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { type SupplementItem, type SupplementLog } from "../types/Supplement";
 import { supplementsAPI, supplementLogsAPI } from "../config/api";
 import { useAuth } from "../context/AuthContext";
@@ -9,17 +9,41 @@ export function useSupplements() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Track if we're already loading data to prevent duplicate requests
+  const isLoadingRef = useRef(false);
+  // Track last load time to prevent too frequent refreshes
+  const lastLoadTimeRef = useRef(0);
+  // Track if component is mounted
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    if (user) {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user && !isLoadingRef.current) {
       loadSupplements();
-    } else {
+    } else if (!user) {
       setSupplements([]);
       setIsLoading(false);
     }
   }, [user, refreshTrigger]);
 
   const loadSupplements = async () => {
+    // Prevent duplicate requests
+    if (isLoadingRef.current) return;
+    
+    // Prevent too frequent refreshes (minimum 2 seconds between loads)
+    const now = Date.now();
+    if (now - lastLoadTimeRef.current < 2000) return;
+    
+    isLoadingRef.current = true;
+    lastLoadTimeRef.current = now;
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -150,12 +174,18 @@ export function useSupplements() {
         }
       });
       
-      setSupplements(transformedSupplements);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setSupplements(transformedSupplements);
+        setIsLoading(false);
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to load supplements");
-      setSupplements([]);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setError(err.message || "Failed to load supplements");
+        setSupplements([]);
+        setIsLoading(false);
+      }
+    } finally {
+      isLoadingRef.current = false;
     }
   };
 
@@ -260,11 +290,6 @@ export function useSupplements() {
           );
         }
         
-        // Refresh data in background to sync with server
-        setTimeout(() => {
-          setRefreshTrigger(prev => prev + 1);
-        }, 1000);
-        
       } catch (apiError) {
         // Revert the optimistic update on API error
         setSupplements((prev) =>
@@ -287,7 +312,11 @@ export function useSupplements() {
   };
 
   const refetch = () => {
-    setRefreshTrigger(prev => prev + 1);
+    // Only trigger a refresh if we're not already loading and it's been at least 2 seconds
+    const now = Date.now();
+    if (!isLoadingRef.current && now - lastLoadTimeRef.current >= 2000) {
+      setRefreshTrigger(prev => prev + 1);
+    }
   };
 
   return {

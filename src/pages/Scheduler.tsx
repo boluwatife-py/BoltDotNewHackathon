@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isFuture } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import HeadInfo from "../components/UI/HeadInfo";
@@ -13,12 +13,20 @@ const Scheduler: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  const hasInitializedRef = useRef(false);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart);
   const calendarEnd = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  // Only load data once when component mounts
+  useEffect(() => {
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+    }
+  }, []);
 
   // Get supplement status for a specific date
   const getSupplementStatusForDate = (date: Date): "taken" | "missed" | null => {
