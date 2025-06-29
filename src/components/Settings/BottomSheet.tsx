@@ -40,6 +40,9 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
       setShowDeleteConfirm(false);
       setIsDeleting(false);
       setIsLoading(false);
+      setIsDragging(false);
+      setTranslateY(0);
+      setStartY(0);
     }
   }, [isOpen]);
 
@@ -124,6 +127,41 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
     setStartY(0);
   };
 
+  const handleDeleteSupplement = async () => {
+    if (!supplement || isDeleting) return;
+
+    setIsDeleting(true);
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error("No authentication token");
+      }
+
+      console.log(`Deleting supplement with ID: ${supplement.id}`);
+      await supplementsAPI.delete(token, supplement.id);
+      console.log('Supplement deleted successfully from backend');
+      
+      // Close the bottom sheet immediately
+      onClose();
+      
+      // Small delay to ensure UI updates smoothly
+      setTimeout(() => {
+        if (onSupplementDeleted) {
+          console.log('Calling onSupplementDeleted callback');
+          onSupplementDeleted();
+        }
+      }, 100);
+      
+    } catch (error: any) {
+      console.error("Error deleting supplement:", error);
+      alert(`Failed to delete supplement: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleEditDetails = async () => {
     setIsLoading(true);
     
@@ -206,39 +244,6 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
         supplementId: supplement.id
       } 
     });
-  };
-
-  const handleDeleteSupplement = async () => {
-    if (!supplement || isDeleting) return;
-
-    setIsDeleting(true);
-    
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error("No authentication token");
-      }
-
-      console.log(`Deleting supplement with ID: ${supplement.id}`);
-      await supplementsAPI.delete(token, supplement.id);
-      console.log('Supplement deleted successfully');
-      
-      // Close the bottom sheet first
-      onClose();
-      
-      // Call the callback to refresh the supplement list
-      if (onSupplementDeleted) {
-        console.log('Calling onSupplementDeleted callback');
-        onSupplementDeleted();
-      }
-      
-    } catch (error: any) {
-      console.error("Error deleting supplement:", error);
-      // You could show an error message here
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-    }
   };
 
   // Helper function to format times of day for display
