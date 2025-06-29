@@ -11,18 +11,6 @@ export default function Chatbot() {
   const scrollAnchor = useRef<HTMLDivElement>(null);
   const { messages, isTyping, sendMessage, errorType, clearError, hasLoadedHistory } = useChat();
   const [userInput, setUserInput] = useState("");
-  const [showCachedNotice, setShowCachedNotice] = useState(false);
-
-  // Show cached notice when loading from localStorage
-  useEffect(() => {
-    if (hasLoadedHistory && messages.length > 1) {
-      setShowCachedNotice(true);
-      const timer = setTimeout(() => {
-        setShowCachedNotice(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [hasLoadedHistory, messages.length]);
 
   useLayoutEffect(() => {
     scrollAnchor.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,14 +44,6 @@ export default function Chatbot() {
   return (
     <div className="bg-[var(--border-dark)] min-h-[calc(100vh-60px)] flex flex-col">
       <HeadInfo text="SafeDoser Assistant" />
-
-      {/* Cached Notice */}
-      {showCachedNotice && (
-        <div className="fixed top-16 left-0 right-0 mx-auto w-max bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-popin">
-          <RefreshCcw className="w-4 h-4" />
-          <span className="text-sm">Loaded from cached conversation</span>
-        </div>
-      )}
 
       {/* Chat messages */}
       <div className="flex-1 p-[1rem] overflow-y-auto flex flex-col mb-[3.5rem]">
