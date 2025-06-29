@@ -57,7 +57,7 @@ const Scheduler: React.FC = () => {
     return null;
   };
 
-  // Filter supplements by period using the period property
+  // Filter supplements by period and sort by time
   const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") => {
     const periodMap = {
       "morning": "Morning",
@@ -65,7 +65,14 @@ const Scheduler: React.FC = () => {
       "evening": "Evening"
     };
     
-    return supplements.filter((supp) => supp.period === periodMap[slot]);
+    return supplements
+      .filter((supp) => supp.period === periodMap[slot])
+      .sort((a, b) => {
+        // Convert time strings to comparable format (HH:MM)
+        const timeA = a.time.padStart(5, '0'); // Ensure format like "08:00"
+        const timeB = b.time.padStart(5, '0');
+        return timeA.localeCompare(timeB);
+      });
   };
 
   const morningSupplements = getSupplementsBySlot("morning");
