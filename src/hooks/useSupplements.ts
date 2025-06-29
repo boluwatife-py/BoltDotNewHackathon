@@ -123,7 +123,8 @@ export function useSupplements() {
                 completed: false, // Each time slot has its own completion state
                 type: mapDosageFormToType(supplement.dosage_form),
                 tags, // Now includes frequency and interactions as tags
-                alerts: undefined // No alerts - interactions are now tags
+                alerts: undefined, // No alerts - interactions are now tags
+                period: period as 'Morning' | 'Afternoon' | 'Evening' // Add period for filtering
               });
             });
           }

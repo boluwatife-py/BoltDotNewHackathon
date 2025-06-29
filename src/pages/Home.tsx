@@ -11,12 +11,6 @@ import { useSupplements } from "../hooks/useSupplements";
 import { useNotifications } from "../hooks/useNotifications";
 import { type SupplementItem } from "../types/Supplement";
 
-const getTimeSlot = (hour: number): "morning" | "afternoon" | "evening" => {
-  if (hour < 12) return "morning";
-  if (hour < 18) return "afternoon";
-  return "evening";
-};
-
 const Home: React.FC = () => {
   const today = new Date();
   const formattedDate = today.toLocaleDateString("en-US", {
@@ -104,11 +98,16 @@ const Home: React.FC = () => {
     }
   };
 
-  const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") =>
-    supplements.filter((supp) => {
-      const hour = parseInt(supp.time.split(":")[0], 10);
-      return getTimeSlot(hour) === slot;
-    });
+  // Filter supplements by period using the period property
+  const getSupplementsBySlot = (slot: "morning" | "afternoon" | "evening") => {
+    const periodMap = {
+      "morning": "Morning",
+      "afternoon": "Afternoon", 
+      "evening": "Evening"
+    };
+    
+    return supplements.filter((supp) => supp.period === periodMap[slot]);
+  };
 
   const morningSupplements = getSupplementsBySlot("morning");
   const afternoonSupplements = getSupplementsBySlot("afternoon");
