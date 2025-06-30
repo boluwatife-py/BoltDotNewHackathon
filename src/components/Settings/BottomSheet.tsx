@@ -148,7 +148,6 @@ export default function BottomSheet({ isOpen, onClose, supplement, onSupplementD
       }
       
     } catch (error: any) {
-      console.error("Error deleting supplement:", error);
       alert(`Failed to delete supplement: ${error.message}`);
     } finally {
       setIsDeleting(false);

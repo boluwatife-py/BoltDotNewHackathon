@@ -14,6 +14,7 @@ interface User {
   age: number;
   avatarUrl?: string;
   email_verified?: boolean;
+  created_at?: string; // Add created_at field to track signup date
 }
 
 interface AuthContextType {
@@ -71,6 +72,9 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Key for storing chat history in localStorage
+const CHAT_HISTORY_STORAGE_KEY = "safedoser_chat_history";
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setConnectionError(false);
       
       const token = localStorage.getItem("access_token");
+
       if (token) {
         // Validate token by fetching user profile
         const { data } = await userAPI.getProfile(token);
@@ -94,13 +99,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           age: data.user.age,
           avatarUrl: data.user.avatar_url,
           email_verified: data.user.email_verified,
+          created_at: data.user.created_at, // Store the created_at date
         });
-        
         
       } else {
         setUser(null);
       }
     } catch (error: any) {
+
       // Check if it's an email verification error
       if (
         error.message.includes("Email not verified") ||
@@ -110,7 +116,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         setUser(null);
-        console.warn("Email verification required. Please check your email and verify your account.");
         return;
       }
 
@@ -123,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error.message.includes("timeout")
       ) {
         setConnectionError(true);
+        // Don't clear tokens on connection errors - user might have valid session
         return;
       }
 
@@ -182,6 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: data.user.age,
         avatarUrl: data.user.avatar_url,
         email_verified: data.user.email_verified,
+        created_at: data.user.created_at, // Store the created_at date
       });
 
       return { success: true };
@@ -286,6 +293,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: data.user.age,
         avatarUrl: data.user.avatar_url,
         email_verified: data.user.email_verified,
+        created_at: data.user.created_at, // Store the created_at date
       });
 
       return {
@@ -346,6 +354,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    
+    // Clear chat history from localStorage when logging out
+    if (user) {
+      const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+      localStorage.removeItem(storageKey);
+    }
+    
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setUser(null);
@@ -372,7 +387,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         reason: data.reason,
       };
     } catch (error: any) {
-      console.error("Password reset error:", error);
 
       if (
         error.message === "Failed to fetch" ||
@@ -423,11 +437,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         age: profileData.user.age,
         avatarUrl: profileData.user.avatar_url,
         email_verified: profileData.user.email_verified,
+        created_at: profileData.user.created_at, // Preserve the created_at date
       });
 
       return { success: true };
     } catch (error: any) {
-      console.error("Profile update error:", error);
 
       if (
         error.message === "Failed to fetch" ||

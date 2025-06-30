@@ -20,7 +20,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error('Chat API Error:', error);
     
     // Return a helpful fallback response
     const fallbackResponse = `I'm experiencing some technical difficulties right now, but I'm still here to help! 🔧

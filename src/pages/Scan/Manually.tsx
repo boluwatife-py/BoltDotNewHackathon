@@ -114,7 +114,6 @@ function AddManually() {
   };
 
   const handleInteractionsChange = (interactions: FormData["interactions"]) => {
-    console.log("Interactions changed:", interactions); // Debug log
     setFormData((prev) => ({ ...prev, interactions }));
   };
 
@@ -196,11 +195,6 @@ function AddManually() {
         image_url: null,
       };
 
-      console.log(
-        "Submitting supplement with interactions:",
-        supplementPayload.interactions
-      ); // Debug log
-
       if (editMode && location.state?.supplementId) {
         // Update existing supplement
         await supplementsAPI.update(
@@ -223,7 +217,6 @@ function AddManually() {
         navigate("/scan/add/done");
       }
     } catch (error: any) {
-      console.error("Error saving supplement:", error);
       setIsLoading(false);
       // You could show an error message here
     }

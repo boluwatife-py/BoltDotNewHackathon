@@ -16,6 +16,7 @@ import Signup from "./pages/Auth/Signup";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import EmailVerification from "./pages/Auth/EmailVerification";
 import ResetPassword from "./pages/Auth/ResetPassword";
+import VerificationSent from "./pages/Auth/VerificationSent";
 
 // Legal Pages
 import Terms from "./pages/Legal/Terms";
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/verify-email" element={<EmailVerification />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/verification-sent" element={<VerificationSent />} />
         {/* Legal pages accessible without authentication */}
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />

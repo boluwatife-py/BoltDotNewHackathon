@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import { supplementsAPI } from "../config/api";
+import { supplementsAPI, supplementLogsAPI } from "../config/api";
 
 interface User {
   name: string;
@@ -43,8 +43,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     completedDoses: 0,
     totalDoses: 0,
   });
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
 
-  // Load supplement statistics when user changes
+  // Load supplement statistics when user changes or when explicitly refreshed
   useEffect(() => {
     if (user) {
       loadSupplementStats();
@@ -53,18 +54,31 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }, [user]);
 
+  // Function to load supplement statistics
   const loadSupplementStats = async () => {
     try {
+      // Prevent too frequent refreshes (minimum 2 seconds between loads)
+      const now = Date.now();
+      if (now - lastRefreshTime < 2000) return;
+      
+      setLastRefreshTime(now);
+      
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const { data } = await supplementsAPI.getAll(token);
+      // Get both supplements and today's logs
+      const [supplementsResponse, logsResponse] = await Promise.all([
+        supplementsAPI.getAll(token),
+        supplementLogsAPI.getTodayLogs(token)
+      ]);
       
-      // Calculate today's supplement statistics
+      const supplements = supplementsResponse.data;
+      const logs = logsResponse.data || [];
+      
+      // Calculate total doses from supplements
       let totalDoses = 0;
-      let completedDoses = 0;
-
-      data.forEach((supplement: any) => {
+      
+      supplements.forEach((supplement: any) => {
         // Parse times_of_day to count total doses for today
         let timesOfDay = supplement.times_of_day;
         if (typeof timesOfDay === 'string') {
@@ -82,37 +96,48 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             totalDoses += times.length;
           }
         }
-
-        // In a real implementation, you would check supplement logs
-        // For now, we'll simulate some completed doses
-        if (supplement.remind_me) {
-          // Simulate that some supplements have been taken
-          const random = Math.random();
-          if (random > 0.3) { // 70% chance of being taken
-            completedDoses += Math.floor(totalDoses * 0.7);
-          }
-        }
       });
+      
+      // Count completed doses from logs
+      const completedDoses = logs.filter((log: any) => log.status === 'taken').length;
 
       setSupplementStats({
         completedDoses: Math.min(completedDoses, totalDoses),
         totalDoses
       });
     } catch (error) {
-      console.error("Error loading supplement stats:", error);
-      setSupplementStats({ completedDoses: 0, totalDoses: 0 });
     }
   };
 
-  const contextValue: User = {
+  // Set up a refresh interval to update stats periodically
+  useEffect(() => {
+    if (!user) return;
+    
+    // Refresh stats every 60 seconds
+    const intervalId = setInterval(() => {
+      loadSupplementStats();
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, [user]);
+
+  // Add a method to the context to allow manual refresh
+  const refreshStats = () => {
+    if (user) {
+      loadSupplementStats();
+    }
+  };
+
+  const contextValue: User & { refreshStats?: () => void } = {
     name: user?.name || "User",
     completedDoses: supplementStats.completedDoses,
     totalDoses: supplementStats.totalDoses,
     avatarUrl: user?.avatarUrl || "/defaultUser.png",
+    refreshStats
   };
 
   return (
-    <UserContext.Provider value={contextValue}>
+    <UserContext.Provider value={contextValue as User}>
       {children}
     </UserContext.Provider>
   );

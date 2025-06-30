@@ -30,7 +30,6 @@ export default function Settings() {
       setChatCleared(true);
       setTimeout(() => setChatCleared(false), 3000);
     } catch (error) {
-      console.error("Error clearing chat history:", error);
     } finally {
       setIsClearingChat(false);
     }

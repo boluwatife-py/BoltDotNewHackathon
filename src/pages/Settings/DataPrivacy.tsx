@@ -10,14 +10,10 @@ const DataPrivacy: React.FC = () => {
 
   const handleAiDataSharingChange = (enabled: boolean) => {
     setAiDataSharing(enabled);
-    // In a real app, this would update the user's preferences in the backend
-    console.log("AI data sharing:", enabled);
   };
 
   const handleAnalyticsSharingChange = (enabled: boolean) => {
     setAnalyticsSharing(enabled);
-    // In a real app, this would update the user's preferences in the backend
-    console.log("Analytics sharing:", enabled);
   };
 
   return (

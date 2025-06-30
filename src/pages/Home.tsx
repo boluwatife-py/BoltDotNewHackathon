@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import GreetingCard from "../components/GreetingCard/GreetingCard";
 import NoticeCard from "../components/NoticeCard/NoticeCard";
 import TimeLineTime from "../components/UI/TimeLineTime";
@@ -10,6 +10,7 @@ import NotificationPermissionBanner from "../components/UI/NotificationPermissio
 import { useSupplements } from "../hooks/useSupplements";
 import { useNotifications } from "../hooks/useNotifications";
 import { type SupplementItem } from "../types/Supplement";
+import { useUser } from "../context/UserContext";
 
 const Home: React.FC = () => {
   const today = new Date();
@@ -20,16 +21,30 @@ const Home: React.FC = () => {
   });
 
   const { supplements, isLoading, error, handleToggleMute, handleToggleCompleted, refetch } = useSupplements();
+  const { refreshStats } = useUser() as { refreshStats?: () => void };
+  const autoRefreshTimerRef = useRef<number | null>(null);
   
-  // Auto-refresh supplements every minute
+  // Auto-refresh supplements every 5 minutes instead of every minute
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log("🔄 Auto-refreshing supplements");
-      refetch();
-    }, 60000); // 60 seconds
+    // Clear any existing timer when component mounts or refreshTrigger changes
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+    }
     
-    return () => clearInterval(intervalId);
-  }, [refetch]);
+    // Set up new timer
+    autoRefreshTimerRef.current = window.setInterval(() => {
+      refetch();
+      if (refreshStats) refreshStats();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Clean up timer on unmount
+    return () => {
+      if (autoRefreshTimerRef.current) {
+        clearInterval(autoRefreshTimerRef.current);
+        autoRefreshTimerRef.current = null;
+      }
+    };
+  }, [refetch, refreshStats]);
   
   // Notification state
   const [notificationToast, setNotificationToast] = useState<{
@@ -102,10 +117,13 @@ const Home: React.FC = () => {
   };
 
   // Mark supplement as completed from notification
-  const markSupplementCompleted = () => {
+  const markSupplementCompleted = async () => {
     if (notificationToast.supplement) {
-      handleToggleCompleted(notificationToast.supplement.id);
+      await handleToggleCompleted(notificationToast.supplement.id);
       closeNotificationToast();
+      
+      // Refresh user stats after marking as completed
+      if (refreshStats) refreshStats();
     }
   };
 
@@ -131,9 +149,15 @@ const Home: React.FC = () => {
   const afternoonSupplements = getSupplementsBySlot("afternoon");
   const eveningSupplements = getSupplementsBySlot("evening");
 
-  console.log("🌞 Morning supplements:", morningSupplements);
-  console.log("🌆 Afternoon supplements:", afternoonSupplements);
-  console.log("🌙 Evening supplements:", eveningSupplements);
+  // Custom toggle completed handler that also refreshes user stats
+  const handleToggleCompletedWithRefresh = async (id: number) => {
+    await handleToggleCompleted(id);
+    
+    // Refresh user stats after toggling completion
+    if (refreshStats) {
+      setTimeout(() => refreshStats(), 300); // Small delay to ensure backend update completes
+    }
+  };
 
   if (error) {
     return (
@@ -201,7 +225,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={morningSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}
@@ -212,7 +236,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={afternoonSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}
@@ -223,7 +247,7 @@ const Home: React.FC = () => {
                 <SupplementCard
                   supplements={eveningSupplements}
                   onToggleMute={handleToggleMute}
-                  onToggleCompleted={handleToggleCompleted}
+                  onToggleCompleted={handleToggleCompletedWithRefresh}
                 />
               </>
             )}

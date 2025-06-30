@@ -141,7 +141,6 @@ export default function Cvs() {
       });
       
     } catch (error) {
-      console.error("CSV processing error:", error);
       setUploadError("Failed to process CSV file. Please check the file format and try again.");
       setIsUploading(false);
     }

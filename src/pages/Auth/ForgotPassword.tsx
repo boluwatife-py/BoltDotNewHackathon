@@ -47,7 +47,6 @@ const ForgotPassword: React.FC = () => {
       });
       
     } catch (error: any) {
-      console.error("Password reset error:", error);
       setError(error.message || "Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);

@@ -42,7 +42,6 @@ const EmailVerification: React.FC = () => {
         });
       }, 3000);
     } catch (error: any) {
-      console.error("Verification error:", error);
       
       if (error.message?.includes("expired")) {
         setStatus("expired");
@@ -72,7 +71,6 @@ const EmailVerification: React.FC = () => {
         }
       });
     } catch (error: any) {
-      console.error("Resend error:", error);
       setMessage(error.message || "Failed to resend verification email");
       setStatus("error");
     } finally {

@@ -187,7 +187,6 @@ const Login: React.FC = () => {
       }
       window.location.href = `${backendUrl}/auth/${provider}`;
     } catch (error: any) {
-      console.error(`${provider} login error:`, error);
       const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors((prev) => ({
         ...prev,
@@ -220,7 +219,6 @@ const Login: React.FC = () => {
         showNotification("error", `Failed to send verification email: ${data.reason || "Unknown error"}`);
       }
     } catch (error: any) {
-      console.error("Resend verification error:", error);
       
       let errorMessage = "Failed to send verification email";
       if (error.message.includes("timeout")) {

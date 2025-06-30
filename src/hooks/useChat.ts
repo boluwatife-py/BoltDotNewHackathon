@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { chatAPI } from "../config/api";
 
@@ -9,6 +9,9 @@ export type Message = {
 
 export type ErrorType = "network" | "server" | "auth" | undefined;
 
+// Key for storing chat history in localStorage
+const CHAT_HISTORY_STORAGE_KEY = "safedoser_chat_history";
+
 export function useChat() {
   const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -16,20 +19,56 @@ export function useChat() {
   const [errorType, setErrorType] = useState<ErrorType>(undefined);
   const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
   const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
+  const isLoadingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  // Track component mount status
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load chat history on mount
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated || isLoadingRef.current) {
         setHasLoadedHistory(true);
         return;
       }
 
+      isLoadingRef.current = true;
+
       try {
+        // First try to load from localStorage
+        if (user) {
+          const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+          const storedHistory = localStorage.getItem(storageKey);
+          
+          if (storedHistory) {
+            try {
+              const parsedHistory = JSON.parse(storedHistory);
+              if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                if (isMountedRef.current) {
+                  setMessages(parsedHistory);
+                  setHasLoadedHistory(true);
+                  isLoadingRef.current = false;
+                  return; // Exit early if we loaded from localStorage
+                }
+              }
+            } catch (e) {
+            }
+          }
+        }
+
+        // If no valid localStorage data, fetch from API
         const token = localStorage.getItem('access_token');
         
         if (!token) {
-          setHasLoadedHistory(true);
+          if (isMountedRef.current) {
+            setHasLoadedHistory(true);
+          }
           return;
         }
 
@@ -41,22 +80,49 @@ export function useChat() {
             sender: msg.sender,
             text: msg.message
           }));
-          setMessages(transformedMessages);
+          
+          if (isMountedRef.current) {
+            setMessages(transformedMessages);
+            
+            // Save to localStorage for future visits
+            if (user) {
+              const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+              localStorage.setItem(storageKey, JSON.stringify(transformedMessages));
+            }
+          }
         } else {
           // Default welcome message
-          setMessages([{
-            sender: "assistant",
+          const welcomeMessage = {
+            sender: "assistant" as const,
             text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant powered by advanced AI. I can help you with questions about your medications, supplements, drug interactions, side effects, and general health concerns. What would you like to know? 💊✨`
-          }]);
+          };
+          
+          if (isMountedRef.current) {
+            setMessages([welcomeMessage]);
+            
+            // Save welcome message to localStorage
+            if (user) {
+              const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+              localStorage.setItem(storageKey, JSON.stringify([welcomeMessage]));
+            }
+          }
         }
       } catch (error) {
-        console.error("Error loading chat history:", error);
-        setMessages([{
-          sender: "assistant",
+        
+        // Set default welcome message on error
+        const welcomeMessage = {
+          sender: "assistant" as const,
           text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
-        }]);
+        };
+        
+        if (isMountedRef.current) {
+          setMessages([welcomeMessage]);
+        }
       } finally {
-        setHasLoadedHistory(true);
+        if (isMountedRef.current) {
+          setHasLoadedHistory(true);
+        }
+        isLoadingRef.current = false;
       }
     };
 
@@ -84,10 +150,19 @@ export function useChat() {
       const { data } = await chatAPI.sendMessage(token, message);
       
       const assistantMessage: Message = { sender: "assistant", text: data.reply };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setLastUserMessage(null);
+      
+      if (isMountedRef.current) {
+        const updatedMessages = [...messages, userMessage, assistantMessage];
+        setMessages(updatedMessages);
+        setLastUserMessage(null);
+        
+        // Update localStorage with new messages
+        if (user) {
+          const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+          localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+        }
+      }
     } catch (error: any) {
-      console.error("Chat error:", error);
       
       if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
         setErrorType("auth");
@@ -100,9 +175,21 @@ export function useChat() {
       // Fallback response
       const fallbackResponse = generateFallbackResponse(message);
       const assistantMessage: Message = { sender: "assistant", text: fallbackResponse };
-      setMessages((prev) => [...prev, assistantMessage]);
+      
+      if (isMountedRef.current) {
+        const updatedMessages = [...messages, userMessage, assistantMessage];
+        setMessages(updatedMessages);
+        
+        // Still update localStorage with fallback response
+        if (user) {
+          const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+          localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
+        }
+      }
     } finally {
-      setIsTyping(false);
+      if (isMountedRef.current) {
+        setIsTyping(false);
+      }
     }
   };
 
@@ -138,12 +225,21 @@ export function useChat() {
       }
       
       // Reset to welcome message
-      setMessages([{
-        sender: "assistant",
+      const welcomeMessage = {
+        sender: "assistant" as const,
         text: `Hey ${user?.name || 'there'}! 👋 I'm your personal medical AI assistant. Ask me any questions about your medications, supplements, or health concerns! 💊✨`
-      }]);
+      };
+      
+      if (isMountedRef.current) {
+        setMessages([welcomeMessage]);
+        
+        // Update localStorage with cleared history
+        if (user) {
+          const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
+          localStorage.setItem(storageKey, JSON.stringify([welcomeMessage]));
+        }
+      }
     } catch (error) {
-      console.error("Error clearing chat history:", error);
     }
   };
 

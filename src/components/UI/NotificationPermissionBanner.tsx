@@ -24,7 +24,6 @@ const NotificationPermissionBanner: React.FC = () => {
         setShowBanner(false);
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
     } finally {
       setIsRequesting(false);
     }

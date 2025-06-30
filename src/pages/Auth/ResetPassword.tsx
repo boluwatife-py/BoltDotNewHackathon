@@ -78,7 +78,6 @@ const ResetPassword: React.FC = () => {
         });
       }, 3000);
     } catch (error: any) {
-      console.error("Password reset error:", error);
       
       if (error.message?.includes("expired") || error.message?.includes("invalid")) {
         setTokenValid(false);

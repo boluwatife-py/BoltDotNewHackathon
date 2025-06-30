@@ -122,20 +122,14 @@ const Signup: React.FC = () => {
     );
     
     if (result.success) {
-      showNotification('success', 'Account created successfully!');
-      
-      // Navigate to login with verification info
-      setTimeout(() => {
-        navigate("/auth/login", {
-          state: {
-            message: "Account created successfully! Please check your email to verify your account.",
-            emailSent: result.emailSent,
-            emailMessage: result.emailMessage,
-            userEmail: formData.email,
-            showVerificationInfo: true
-          }
-        });
-      }, 1500);
+      // Navigate to verification page instead of showing notification
+      navigate("/auth/verification-sent", {
+        state: {
+          email: formData.email,
+          emailSent: result.emailSent,
+          emailMessage: result.emailMessage
+        }
+      });
     } else {
       setErrors(prev => ({ ...prev, general: result.error || "Signup failed" }));
       showNotification('error', result.error || "Signup failed");
@@ -192,7 +186,6 @@ const Signup: React.FC = () => {
       }
       window.location.href = `${API_BASE_URL}/auth/${provider}`;
     } catch (error: any) {
-      console.error(`${provider} login error:`, error);
       const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors(prev => ({ 
         ...prev, 

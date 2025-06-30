@@ -4,7 +4,6 @@ import HeadInfo from "../../components/UI/HeadInfo";
 import { Search } from "lucide-react";
 import BottomSheet from "../../components/Settings/BottomSheet";
 import AddButton from "../../components/NewSupp";
-import LoadingSpinner from "../../components/UI/LoadingSpinner";
 import LoadingCard from "../../components/UI/LoadingCard";
 import { type SupplementData } from "../../types/FormData";
 import { useBottomSheet } from "../../context/BottomSheetContext";
@@ -109,7 +108,6 @@ export default function SupplementList() {
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="p-4 space-y-4">
-            <LoadingSpinner text="Loading supplements..." />
             <LoadingCard />
             <LoadingCard />
             <LoadingCard />

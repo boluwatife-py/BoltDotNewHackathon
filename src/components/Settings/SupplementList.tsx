@@ -18,6 +18,14 @@ export default function SupplementList() {
   const [selectedSupp, setSelectedSupp] = useState<SupplementData | null>(null);
   const { setIsBottomSheetOpen: setGlobalBottomSheetOpen } = useBottomSheet();
   const { supplementList, isLoading, error, refetch } = useSupplementList();
+  const hasInitializedRef = useRef(false);
+
+  // Only load data once when component mounts
+  useEffect(() => {
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+    }
+  }, []);
 
   const handleOpen = (supplement: SupplementData) => {
     setSelectedSupp(supplement);
@@ -32,10 +40,11 @@ export default function SupplementList() {
   };
 
   const handleSupplementDeleted = async () => {
+    // Force a complete refresh of the supplement list
     try {
       await refetch();
     } catch (error) {
-      console.error('Error refreshing supplement list:', error);
+      
     }
   };
 
