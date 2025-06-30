@@ -2,7 +2,7 @@
 // This file centralizes all API-related configuration
 
 // Get API base URL from environment variable or use production URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://safedoser.onrender.com';
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -111,11 +111,7 @@ export const apiRequest = async (
     ...getAuthHeaders(token),
     ...customHeaders,
   };
-
-  console.log(`🌐 API Request: ${method} ${endpoint}`);
-  if (body) {
-    console.log(`📦 Request body:`, body);
-  }
+  
 
   // Create timeout controller
   const { controller, cleanup } = createTimeoutController(timeout);
@@ -146,7 +142,6 @@ export const apiRequest = async (
       data = await response.text();
     }
 
-    console.log(`✅ API Response (${response.status}):`, data);
 
     if (!response.ok) {
       throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
@@ -159,17 +154,14 @@ export const apiRequest = async (
     
     // Handle timeout errors
     if (error.name === 'AbortError') {
-      console.error(`❌ API request timeout: ${method} ${url}`);
       throw new Error('Request timeout. Please check your internet connection and try again.');
     }
     
     // Handle network errors
     if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
-      console.error(`❌ Network error: ${method} ${url}`, error);
       throw new Error('Network error. Please check your internet connection and try again.');
     }
     
-    console.error(`❌ API request failed: ${method} ${url}`, error);
     throw error;
   }
 };
