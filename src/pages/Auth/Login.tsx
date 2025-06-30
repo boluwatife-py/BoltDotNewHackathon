@@ -150,9 +150,12 @@ const Login: React.FC = () => {
     } else {
       // Check if it's an email verification error
       if (result.error?.includes("verify your email") || result.error?.includes("Email not verified")) {
-        setVerificationEmail(formData.email);
-        setShowEmailVerificationPrompt(true);
-        setErrors((prev) => ({ ...prev, general: "" }));
+        // Redirect to verification sent page instead of showing modal
+        navigate("/auth/verification-sent", {
+          state: {
+            email: formData.email
+          }
+        });
       } else {
         setErrors((prev) => ({
           ...prev,
@@ -187,7 +190,6 @@ const Login: React.FC = () => {
       }
       window.location.href = `${backendUrl}/auth/${provider}`;
     } catch (error: any) {
-      console.error(`${provider} login error:`, error);
       const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors((prev) => ({
         ...prev,
@@ -209,19 +211,17 @@ const Login: React.FC = () => {
         showNotification("success", "Verification email sent successfully! Please check your inbox.");
         setShowEmailVerificationPrompt(false);
         
-        // Navigate back to login with success message
-        navigate("/auth/login", {
+        // Navigate to verification sent page
+        navigate("/auth/verification-sent", {
           state: {
-            message: "Verification email sent! Please check your inbox and click the verification link.",
-            userEmail: verificationEmail
+            email: verificationEmail,
+            emailSent: true
           }
         });
       } else {
         showNotification("error", `Failed to send verification email: ${data.reason || "Unknown error"}`);
       }
     } catch (error: any) {
-      console.error("Resend verification error:", error);
-      
       let errorMessage = "Failed to send verification email";
       if (error.message.includes("timeout")) {
         errorMessage = "Request timed out. Please check your internet connection and try again.";

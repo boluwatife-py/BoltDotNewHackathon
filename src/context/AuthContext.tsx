@@ -92,6 +92,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Validate token by fetching user profile
         const { data } = await userAPI.getProfile(token);
 
+        // Check if email is verified
+        if (!data.user.email_verified && data.user.email !== "demo@safedoser.com") {
+          // Clear tokens for unverified users
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          setUser(null);
+          throw new Error("Email not verified. Please check your email and verify your account.");
+        }
+
         setUser({
           id: data.user.id,
           email: data.user.email,
@@ -101,12 +110,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email_verified: data.user.email_verified,
           created_at: data.user.created_at, // Store the created_at date
         });
-        
       } else {
         setUser(null);
       }
     } catch (error: any) {
-
       // Check if it's an email verification error
       if (
         error.message.includes("Email not verified") ||
@@ -176,6 +183,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const { data } = await authAPI.login({ email, password });
 
+      // Check if email is verified
+      if (!data.user.email_verified && email !== "demo@safedoser.com") {
+        return {
+          success: false,
+          error: "Email not verified. Please check your email and verify your account."
+        };
+      }
+
       // Store tokens
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
@@ -193,7 +208,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { success: true };
     } catch (error: any) {
-
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
@@ -281,28 +295,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const { data } = await authAPI.signup(userData);
 
-      // Store tokens
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-
-      // Set user data
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        age: data.user.age,
-        avatarUrl: data.user.avatar_url,
-        email_verified: data.user.email_verified,
-        created_at: data.user.created_at, // Store the created_at date
-      });
-
+      // For signup, we don't store tokens or set user data anymore
+      // since we want the user to verify their email first
+      
       return {
         success: true,
         emailSent: data.email_sent,
         emailMessage: data.email_message,
       };
     } catch (error: any) {
-
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
@@ -354,7 +355,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    
     // Clear chat history from localStorage when logging out
     if (user) {
       const storageKey = `${CHAT_HISTORY_STORAGE_KEY}_${user.id}`;
@@ -387,7 +387,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         reason: data.reason,
       };
     } catch (error: any) {
-
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
@@ -442,7 +441,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { success: true };
     } catch (error: any) {
-
       if (
         error.message === "Failed to fetch" ||
         error.message.includes("fetch") ||
