@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { authAPI } from "../../config/api";
 import InputField from "../../components/UI/Input";
 import Checkbox from "../../components/UI/Checkbox";
-import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle, X, RefreshCcw } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, CheckCircle, AlertCircle, X } from "lucide-react";
 import { API_BASE_URL } from "../../config/api";
 
 const Signup: React.FC = () => {
@@ -187,7 +186,6 @@ const Signup: React.FC = () => {
       }
       window.location.href = `${API_BASE_URL}/auth/${provider}`;
     } catch (error: any) {
-      console.error(`${provider} login error:`, error);
       const errorMessage = `Failed to initiate ${provider} login: ${error.message}`;
       setErrors(prev => ({ 
         ...prev, 
