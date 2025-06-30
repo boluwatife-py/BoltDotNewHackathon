@@ -44,7 +44,6 @@ const VerificationSent: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error("Resend verification error:", error);
       
       setResendStatus({
         success: false,
